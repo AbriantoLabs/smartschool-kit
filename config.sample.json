@@ -1,0 +1,4 @@
+{
+  "apiEndpoint": "https://<your_school>.smartschool.be/Webservices/V3",
+  "accesscode": "<your_accesscode>"
+}

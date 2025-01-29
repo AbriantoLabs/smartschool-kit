@@ -1,0 +1,330 @@
+{
+  "addCourse": {
+    "accesscode": { "type": "string", "required": true },
+    "coursename": { "type": "string", "required": true },
+    "coursedesc": { "type": "string", "required": true },
+    "visibility": { "type": "int", "required": false }
+  },
+  "addCourseStudents": {
+    "accesscode": { "type": "string", "required": true },
+    "coursename": { "type": "string", "required": true },
+    "coursedesc": { "type": "string", "required": true },
+    "groupIds": { "type": "string", "required": true }
+  },
+  "addCourseTeacher": {
+    "accesscode": { "type": "string", "required": true },
+    "coursename": { "type": "string", "required": true },
+    "coursedesc": { "type": "string", "required": true },
+    "internnummer": { "type": "string", "required": true },
+    "userlist": { "type": "string", "required": true }
+  },
+  "addHelpdeskTicket": {
+    "accescode": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "description": { "type": "string", "required": true },
+    "priority": { "type": "integer", "required": true },
+    "miniDbItem": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true }
+  },
+  "changeGroupOwners": {
+    "accesscode": { "type": "string", "required": true },
+    "code": { "type": "string", "required": true },
+    "userlist": { "type": "string", "required": true }
+  },
+  "changeInternNumber": {
+    "accesscode": { "type": "string", "required": true },
+    "username": { "type": "string", "required": true },
+    "newInternNumber": { "type": "string", "required": true }
+  },
+  "changePasswordAtNextLogin": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "accountType": { "type": "integer", "required": true }
+  },
+  "changeUsername": {
+    "accesscode": { "type": "string", "required": true },
+    "internNumber": { "type": "string", "required": true },
+    "newUsername": { "type": "string", "required": true }
+  },
+  "checkStatus": {
+    "accesscode": { "type": "string", "required": true },
+    "serviceId": { "type": "string", "required": true }
+  },
+  "clearGroup": {
+    "accesscode": { "type": "string", "required": true },
+    "group": { "type": "string", "required": true },
+    "officialDate": { "type": "string", "required": false }
+  },
+  "deactivateTwoFactorAuthentication": {
+    "deprecated": true,
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "accountType": { "type": "integer", "required": true }
+  },
+  "delClass": {
+    "accesscode": { "type": "string", "required": true },
+    "code": { "type": "string", "required": true }
+  },
+  "delUser": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "officialDate": { "type": "string", "required": false }
+  },
+  "forcePasswordReset": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "accountType": { "type": "integer", "required": true }
+  },
+  "getAbsents": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "schoolYear": { "type": "string", "required": true }
+  },
+  "getAbsentsWithAlias": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "schoolYear": { "type": "string", "required": true }
+  },
+  "getAbsentsByDate": {
+    "accesscode": { "type": "string", "required": true },
+    "date": { "type": "string", "required": true }
+  },
+  "getAbsentsWithAliasByDate": {
+    "accesscode": { "type": "string", "required": true },
+    "date": { "type": "string", "required": true }
+  },
+  "getAbsentsWithInternalNumberByDate": {
+    "accesscode": { "type": "string", "required": true },
+    "date": { "type": "string", "required": true }
+  },
+  "getAbsentsWithUsernameByDate": {
+    "accesscode": { "type": "string", "required": true },
+    "date": { "type": "string", "required": true }
+  },
+  "getAbsentsByDateAndGroup": {
+    "accesscode": { "type": "string", "required": true },
+    "date": { "type": "string", "required": true },
+    "code": { "type": "string", "required": true }
+  },
+  "getAccountPhoto": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true }
+  },
+  "getAllAccounts": {
+    "accesscode": { "type": "string", "required": true },
+    "code": { "type": "string", "required": true },
+    "recursive": { "type": "string", "required": true }
+  },
+  "getAllAccountsExtended": {
+    "accesscode": { "type": "string", "required": true },
+    "code": { "type": "string", "required": true },
+    "recursive": { "type": "string", "required": true }
+  },
+  "getAllGroupsAndClasses": {
+    "accesscode": { "type": "string", "required": true }
+  },
+  "getClassList": {
+    "accesscode": { "type": "string", "required": true }
+  },
+  "getClassListJson": {
+    "accesscode": { "type": "string", "required": true }
+  },
+  "getClassTeachers": {
+    "accesscode": { "type": "string", "required": true },
+    "getAllOwners": { "type": "boolean", "required": true }
+  },
+  "getCourses": {
+    "accesscode": { "type": "string", "required": true }
+  },
+  "getHelpdeskMiniDbItems": {
+    "accescode": { "type": "string", "required": true }
+  },
+  "getReferenceField": {
+    "accesscode": { "type": "string", "required": true }
+  },
+  "getSchoolyearDataOfClass": {
+    "accesscode": { "type": "string", "required": true },
+    "classCode": { "type": "string", "required": true }
+  },
+  "getSkoreClassTeacherCourseRelation": {
+    "accesscode": { "type": "string", "required": true }
+  },
+  "getStudentCareer": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true }
+  },
+  "getUserDetails": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true }
+  },
+  "getUserDetailsByNumber": {
+    "accesscode": { "type": "string", "required": true },
+    "number": { "type": "string", "required": true }
+  },
+  "getUserDetailsByScannableCode": {
+    "accesscode": { "type": "string", "required": true },
+    "scannableCode": { "type": "string", "required": true }
+  },
+  "getUserDetailsByUsername": {
+    "accesscode": { "type": "string", "required": true },
+    "username": { "type": "string", "required": true }
+  },
+  "getUserOfficialClass": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "date": { "type": "string", "required": true }
+  },
+  "removeCoAccount": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "accountType": { "type": "integer", "required": true }
+  },
+  "removeUserFromGroup": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "class": { "type": "string", "required": true },
+    "officialDate": { "type": "string", "required": false }
+  },
+  "replaceInum": {
+    "accesscode": { "type": "string", "required": true },
+    "oldInum": { "type": "string", "required": true },
+    "newInum": { "type": "string", "required": true }
+  },
+  "returnCsvErrorCodes": {},
+  "returnJsonErrorCodes": {},
+  "saveClass": {
+    "accesscode": { "type": "string", "required": true },
+    "name": { "type": "string", "required": true },
+    "desc": { "type": "string", "required": true },
+    "code": { "type": "string", "required": true },
+    "parent": { "type": "string", "required": true },
+    "untis": { "type": "string", "required": true },
+    "instituteNumber": { "type": "string", "required": false },
+    "adminNumber": { "type": "string", "required": false },
+    "schoolYearDate": { "type": "string", "required": false }
+  },
+  "saveClassList": {
+    "accesscode": { "type": "string", "required": true },
+    "serializedList": { "type": "string", "required": true }
+  },
+  "saveClassListJson": {
+    "accesscode": { "type": "string", "required": true },
+    "jsonList": { "type": "string", "required": true }
+  },
+  "saveGroup": {
+    "accesscode": { "type": "string", "required": true },
+    "name": { "type": "string", "required": true },
+    "desc": { "type": "string", "required": true },
+    "code": { "type": "string", "required": true },
+    "parent": { "type": "string", "required": true },
+    "untis": { "type": "string", "required": true }
+  },
+  "savePassword": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "password": { "type": "string", "required": true },
+    "accountType": { "type": "integer", "required": true },
+    "changePasswordAtNextLogin": { "type": "integer", "required": true }
+  },
+  "saveSchoolyearDataOfClass": {
+    "accesscode": { "type": "string", "required": true },
+    "classCode": { "type": "string", "required": true },
+    "date": { "type": "string", "required": true },
+    "instituteNumber": { "type": "string", "required": true },
+    "administrativeGroupNumber": { "type": "string", "required": true },
+    "residence": { "type": "string", "required": true },
+    "domain": { "type": "string", "required": true },
+    "principal": { "type": "string", "required": true }
+  },
+  "saveSignature": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "accountType": { "type": "integer", "required": true },
+    "signature": { "type": "string", "required": true }
+  },
+  "saveUser": {
+    "accesscode": { "type": "string", "required": true },
+    "internnumber": { "type": "string", "required": true },
+    "username": { "type": "string", "required": true },
+    "passwd1": { "type": "string", "required": true },
+    "passwd2": { "type": "string", "required": true },
+    "passwd3": { "type": "string", "required": true },
+    "name": { "type": "string", "required": true },
+    "surname": { "type": "string", "required": true },
+    "extranames": { "type": "string", "required": true },
+    "initials": { "type": "string", "required": true },
+    "sex": { "type": "string", "required": true },
+    "birthday": { "type": "string", "required": true },
+    "birthplace": { "type": "string", "required": true },
+    "birthcountry": { "type": "string", "required": true },
+    "address": { "type": "string", "required": true },
+    "postalCode": { "type": "string", "required": true },
+    "location": { "type": "string", "required": true },
+    "country": { "type": "string", "required": true },
+    "email": { "type": "string", "required": true },
+    "mobilephone": { "type": "string", "required": true },
+    "homephone": { "type": "string", "required": true },
+    "fax": { "type": "string", "required": true },
+    "prn": { "type": "string", "required": true },
+    "stamboeknummer": { "type": "string", "required": true },
+    "basisrol": { "type": "string", "required": true },
+    "untis": { "type": "string", "required": true }
+  },
+  "saveUserParameter": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "paramName": { "type": "string", "required": true },
+    "paramValue": { "type": "string", "required": true }
+  },
+  "saveUserToClass": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "class": { "type": "string", "required": true },
+    "officialDate": { "type": "string", "required": false }
+  },
+  "saveUserToClass": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "class": { "type": "string", "required": true },
+    "officialDate": { "type": "string", "required": false }
+  },
+  "saveUserToClasses": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "csvList": { "type": "string", "required": true }
+  },
+  "saveUserToClassesAndGroups": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "csvList": { "type": "string", "required": true },
+    "keepOld": { "type": "integer", "required": true }
+  },
+  "sendMsg": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "body": { "type": "string", "required": true },
+    "senderIdentifier": { "type": "string", "required": true },
+    "attachments": { "type": "array", "required": false, "default": null },
+    "coaccount": { "type": "integer", "required": false, "default": null },
+    "copyToLVS": { "type": "boolean", "required": false, "default": false }
+  },
+  "setAccountPhoto": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "photo": { "type": "string", "required": true }
+  },
+  "setAccountStatus": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "accountStatus": { "type": "mixed", "required": true }
+  },
+  "startSkoreSync": {
+    "accesscode": { "type": "string", "required": true }
+  },
+  "unregisterStudent": {
+    "accesscode": { "type": "string", "required": true },
+    "userIdentifier": { "type": "string", "required": true },
+    "officialDate": { "type": "string", "required": false }
+  }
+}
