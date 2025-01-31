@@ -616,7 +616,7 @@ export interface SendMsg extends AccessCodeBase, UserIdentifierBase {
   title: string;
   body: string;
   senderIdentifier: string;
-  attachments?: any[];
+  attachments?: string[];
   coaccount?: number;
   copyToLVS?: boolean;
 }

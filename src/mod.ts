@@ -301,7 +301,6 @@ import type {
   DelUser,
   AddHelpdeskTicket,
   SmartschoolParams,
-  SuccessResponse,
   UserDetailsResponse,
   AddCourseStudents,
   AddCourseTeacher,
@@ -403,7 +402,7 @@ export class SmartschoolClient {
    * Create a new course in Smartschool
    *
    * @param data CourseBase
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -415,7 +414,7 @@ export class SmartschoolClient {
    * });
    * ```
    */
-  addCourse(data: CourseBase) {
+  addCourse(data: CourseBase): Promise<true> {
     return this.makeRequest("addCourse", data) as Promise<true>;
   }
 
@@ -423,7 +422,7 @@ export class SmartschoolClient {
    * Add classes to a specific course
    *
    * @param data AddCourseStudents
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -435,7 +434,7 @@ export class SmartschoolClient {
    * });
    * ```
    */
-  addCourseStudents(data: AddCourseStudents) {
+  addCourseStudents(data: AddCourseStudents): Promise<true> {
     return this.makeRequest("addCourseStudents", data) as Promise<true>;
   }
 
@@ -443,7 +442,7 @@ export class SmartschoolClient {
    * Add a teacher to a specific course
    *
    * @param data AddCourseTeacher
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -456,7 +455,7 @@ export class SmartschoolClient {
    * });
    * ```
    */
-  addCourseTeacher(data: AddCourseTeacher) {
+  addCourseTeacher(data: AddCourseTeacher): Promise<true> {
     return this.makeRequest("addCourseTeacher", data) as Promise<true>;
   }
 
@@ -521,7 +520,9 @@ export class SmartschoolClient {
    * });
    * ```
    */
-  getUserDetailsByUsername(data: GetUserDetailsByUsername) {
+  getUserDetailsByUsername(
+    data: GetUserDetailsByUsername,
+  ): Promise<UserDetailsResponse> {
     return this.makeRequest(
       "getUserDetailsByUsername",
       data,
@@ -585,7 +586,7 @@ export class SmartschoolClient {
    * Set the signature (Messages) for a specific main or co-account
    *
    * @param data SaveSignature
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -678,7 +679,7 @@ export class SmartschoolClient {
    * or move existing classes under different parent groups through the API.
    *
    * @param data SaveClass
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -715,7 +716,7 @@ export class SmartschoolClient {
    * or move existing groups under different parent groups through the API.
    *
    * @param data SaveGroup
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -748,7 +749,7 @@ export class SmartschoolClient {
    * including personal information, co-account details, and specific educational parameters.
    *
    * @param data SaveUserParameter
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @remarks
@@ -806,7 +807,7 @@ export class SmartschoolClient {
    * The system checks the userIdentifier field to determine if it should create or update a user.
    *
    * @param data SaveUser
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @remarks
@@ -853,7 +854,7 @@ export class SmartschoolClient {
    * Send a message to a user's main account or co-account. Attachments are optional.
    *
    * @param data SendMsg
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -912,7 +913,7 @@ export class SmartschoolClient {
    * An empty photo value can be used to remove the existing photo.
    *
    * @param data SetAccountPhoto
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -952,7 +953,7 @@ export class SmartschoolClient {
    * Change the status of a user's account.
    *
    * @param data SetAccountStatus
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1055,7 +1056,7 @@ export class SmartschoolClient {
    * Wijzigt de gebruikersnaam van een gebruiker op basis van het intern nummer.
    *
    * @param data ChangeUsername
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1075,7 +1076,7 @@ export class SmartschoolClient {
    * This method only removes the group/class itself, not its members.
    *
    * @param data DelClass
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1238,8 +1239,11 @@ export class SmartschoolClient {
    * ```
    * @todo figure out response type and add proper return type annotation, my test only shows an empty object
    */
-  getSkoreClassTeacherCourseRelation() {
-    return this.makeRequest("getSkoreClassTeacherCourseRelation", {});
+  getSkoreClassTeacherCourseRelation(): Promise<unknown> {
+    return this.makeRequest(
+      "getSkoreClassTeacherCourseRelation",
+      {},
+    ) as Promise<unknown>;
   }
 
   /**
@@ -1299,8 +1303,8 @@ export class SmartschoolClient {
    *
    * @todo Test and implement
    */
-  saveClassList(data: SaveClassList) {
-    return this.makeRequest("saveClassList", data);
+  saveClassList(data: SaveClassList): Promise<unknown> {
+    return this.makeRequest("saveClassList", data) as Promise<unknown>;
   }
 
   /**
@@ -1337,8 +1341,8 @@ export class SmartschoolClient {
    * @todo Test and implement
    * ```
    */
-  saveClassListJson(data: SaveClassListJson) {
-    return this.makeRequest("saveClassListJson", data);
+  saveClassListJson(data: SaveClassListJson): Promise<unknown> {
+    return this.makeRequest("saveClassListJson", data) as Promise<unknown>;
   }
 
   /**
@@ -1406,8 +1410,8 @@ export class SmartschoolClient {
    *
    * @todo Test, fix and implement
    */
-  getAllAccounts(data: GetAllAccounts) {
-    return this.makeRequest("getAllAccounts", data);
+  getAllAccounts(data: GetAllAccounts): Promise<unknown> {
+    return this.makeRequest("getAllAccounts", data) as Promise<unknown>;
   }
 
   /**
@@ -1440,8 +1444,8 @@ export class SmartschoolClient {
    *
    * @todo Test, fix and implement
    */
-  checkStatus(data: CheckStatus) {
-    return this.makeRequest("checkStatus", data);
+  checkStatus(data: CheckStatus): Promise<unknown> {
+    return this.makeRequest("checkStatus", data) as Promise<unknown>;
   }
 
   /**
@@ -1449,7 +1453,7 @@ export class SmartschoolClient {
    * This method allows you to change the internal identifier number of a specific user.
    *
    * @param data ReplaceInum
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1469,7 +1473,7 @@ export class SmartschoolClient {
    * This method allows you to delete a co-account while keeping the main account intact.
    *
    * @param data RemoveCoAccount
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1495,7 +1499,7 @@ export class SmartschoolClient {
    * Set the password for a user's main account or co-account.
    *
    * @param data SavePassword
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @remarks
@@ -1533,7 +1537,7 @@ export class SmartschoolClient {
    * Move a user to a new official class. A student can only be linked to one official class at a time.
    *
    * @param data SaveUserToClass
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1563,7 +1567,7 @@ export class SmartschoolClient {
    *
    * @beta Method has not been tested yet
    * @param data SaveUserToClasses
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1586,7 +1590,7 @@ export class SmartschoolClient {
    *
    * @beta Method has not been tested yet
    * @param data SaveUserToClassesAndGroups
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1619,7 +1623,7 @@ export class SmartschoolClient {
    *
    * @beta Method has not been tested yet
    * @param data SaveSchoolyearDataOfClass
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1655,8 +1659,8 @@ export class SmartschoolClient {
    *
    * @todo Figure this out
    */
-  getReferenceField() {
-    return this.makeRequest("getReferenceField", {});
+  getReferenceField(): Promise<unknown> {
+    return this.makeRequest("getReferenceField", {}) as Promise<unknown>;
   }
 
   /**
@@ -1739,8 +1743,8 @@ export class SmartschoolClient {
    * @todo Test and implement
    * ```
    */
-  unregisterStudent(data: UnregisterStudent) {
-    return this.makeRequest("unregisterStudent", data);
+  unregisterStudent(data: UnregisterStudent): Promise<true> {
+    return this.makeRequest("unregisterStudent", data) as Promise<true>;
   }
 
   /**
@@ -1771,8 +1775,8 @@ export class SmartschoolClient {
    * @todo Test and implement
    * ```
    */
-  startSkoreSync() {
-    return this.makeRequest("startSkoreSync", {});
+  startSkoreSync(): Promise<unknown> {
+    return this.makeRequest("startSkoreSync", {}) as Promise<unknown>;
   }
 
   /**
@@ -1808,8 +1812,8 @@ export class SmartschoolClient {
    * @todo Test and implement
    * ```
    */
-  addHelpdeskTicket(data: AddHelpdeskTicket) {
-    return this.makeRequest("addHelpdeskTicket", data);
+  addHelpdeskTicket(data: AddHelpdeskTicket): Promise<unknown> {
+    return this.makeRequest("addHelpdeskTicket", data) as Promise<unknown>;
   }
 
   /**
@@ -1817,7 +1821,7 @@ export class SmartschoolClient {
    * This method allows you to update who are the primary teachers responsible for a class.
    *
    * @param data ChangeGroupOwners
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1844,7 +1848,7 @@ export class SmartschoolClient {
    * This method will remove all member associations from the given group while keeping the group itself intact.
    *
    * @param data ClearGroup
-   * @returns Promise<true> true if successful
+   * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
    *
    * @example Example
@@ -1861,8 +1865,8 @@ export class SmartschoolClient {
    * });
    * ```
    */
-  clearGroup(data: ClearGroup) {
-    return this.makeRequest("clearGroup", data);
+  clearGroup(data: ClearGroup): Promise<true> {
+    return this.makeRequest("clearGroup", data) as Promise<true>;
   }
 
   /**
@@ -1881,8 +1885,8 @@ export class SmartschoolClient {
    *
    * @todo implement
    */
-  getAllGroupsAndClasses() {
-    return this.makeRequest("getAllGroupsAndClasses", {});
+  getAllGroupsAndClasses(): Promise<unknown> {
+    return this.makeRequest("getAllGroupsAndClasses", {}) as Promise<unknown>;
   }
 
   /**
@@ -1911,8 +1915,8 @@ export class SmartschoolClient {
    *
    * @todo implement
    */
-  getClassList() {
-    return this.makeRequest("getClassList", {});
+  getClassList(): Promise<unknown> {
+    return this.makeRequest("getClassList", {}) as Promise<unknown>;
   }
 
   /**
