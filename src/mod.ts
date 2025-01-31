@@ -317,7 +317,31 @@ import type {
   GetClassListJsonResponse,
 } from "./types.ts";
 
-export class SmartschoolError extends Error {
+/**
+ * Custom error class for handling Smartschool API errors with error codes.
+ * Extends the standard Error class to provide additional Smartschool-specific error information.
+ *
+ * @class SmartschoolError
+ * @extends Error
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await client.saveUser({...});
+ * } catch (error) {
+ *   if (error instanceof SmartschoolError) {
+ *     console.error(`Smartschool Error ${error.code}: ${error.message}`);
+ *   }
+ * }
+ * ```
+ */
+class SmartschoolError extends Error {
+  /**
+   * Creates a new SmartschoolError instance
+   *
+   * @param message - The error message describing what went wrong
+   * @param code - The Smartschool-specific error code
+   */
   constructor(
     message: string,
     public code: string,
@@ -327,19 +351,122 @@ export class SmartschoolError extends Error {
   }
 }
 
+/**
+ * Main client for interacting with the Smartschool API.
+ * Provides methods for managing users, groups, classes, messages, etc.
+ *
+ * @class SmartschoolClient
+ *
+ * @example Basic usage
+ * ```typescript
+ * // Initialize the client
+ * const client = new SmartschoolClient({
+ *   apiEndpoint: "https://school.smartschool.be/Webservices/V3",
+ *   accesscode: "your-access-code"
+ * });
+ *
+ * // Create or update a user
+ * await client.saveUser({
+ *   userIdentifier: "12345",
+ *   username: "john.doe",
+ *   name: "John",
+ *   surname: "Doe",
+ *   basisrol: "leerling",
+ *   email: "john@example.com"
+ * });
+ *
+ * // Send a message
+ * await client.sendMsg({
+ *   userIdentifier: "john.doe",
+ *   title: "Welcome!",
+ *   body: "Welcome to Smartschool",
+ *   senderIdentifier: "admin"
+ * });
+ * ```
+ *
+ * @example Error handling
+ * ```typescript
+ * try {
+ *   await client.saveUser({...});
+ * } catch (error) {
+ *   if (error instanceof SmartschoolError) {
+ *     console.error(`API Error ${error.code}: ${error.message}`);
+ *   } else {
+ *     console.error("Network or other error:", error);
+ *   }
+ * }
+ * ```
+ *
+ * @example Working with classes and groups
+ * ```typescript
+ * // Create a new class
+ * await client.saveClass({
+ *   name: "3A",
+ *   desc: "Third grade A",
+ *   code: "3A-2024",
+ *   parent: "THIRD-GRADE"
+ * });
+ *
+ * // Add student to class
+ * await client.saveUserToClass({
+ *   userIdentifier: "john.doe",
+ *   class: "3A-2024"
+ * });
+ *
+ * // Get class details
+ * const classData = await client.getSchoolyearDataOfClass({
+ *   classCode: "3A-2024"
+ * });
+ * ```
+ */
 export class SmartschoolClient {
+  /** Configuration object containing API endpoint and access code */
   private config: SmartschoolConfig;
+
+  /** Cache of error codes and their descriptions fetched from the API */
   private errorCodes: Record<string, string> = {};
+
+  /** Flag to track if initialization is in progress to prevent multiple concurrent calls */
   private initializing: boolean = false;
 
+  /**
+   * Creates a new SmartschoolClient instance
+   *
+   * @param config - Configuration object containing API endpoint and access code
+   *
+   * @example
+   * ```typescript
+   * const client = new SmartschoolClient({
+   *   apiEndpoint: "https://school.smartschool.be/Webservices/V3",
+   *   accesscode: "your-access-code"
+   * });
+   * ```
+   */
   constructor(config: SmartschoolConfig) {
     this.config = config;
   }
 
+  /**
+   * Initialize the client by fetching error codes from the API.
+   * This is called automatically on first API request.
+   *
+   * @internal
+   */
   private async initialize(): Promise<void> {
     this.errorCodes = await this.returnJsonErrorCodes();
   }
 
+  /**
+   * Make an HTTP request to the Smartschool API
+   *
+   * @internal
+   * @param methodName - The API method name to call
+   * @param params - Parameters to pass to the API method
+   * @param opts - Additional options for the request
+   * @param opts.needsAuth - Whether to include authentication (defaults to true)
+   * @returns Promise resolving to the parsed API response
+   * @throws {SmartschoolError} If the API returns an error code
+   */
   private async makeRequest(
     methodName: string,
     params: SmartschoolParams,
