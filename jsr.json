@@ -1,8 +1,11 @@
 {
   "name": "@abrianto/smartschool-kit",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
-  "exports": "./src/mod.ts",
+  "exports": {
+    ".": "./src/mod.ts",
+    "./types": "./src/types.ts"
+  },
   "bin": {
     "smartschool": "./bin/cli.ts"
   }

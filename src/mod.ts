@@ -401,21 +401,21 @@ class SmartschoolError extends Error {
  * ```typescript
  * // Create a new class
  * await client.saveClass({
- *   name: "3A",
- *   desc: "Third grade A",
- *   code: "3A-2024",
- *   parent: "THIRD-GRADE"
+ *   name: "1A",
+ *   desc: "Class 1A",
+ *   code: "1A",
+ *   parent: "First Grade",
  * });
  *
  * // Add student to class
  * await client.saveUserToClass({
  *   userIdentifier: "john.doe",
- *   class: "3A-2024"
+ *   class: "1A"
  * });
  *
  * // Get class details
  * const classData = await client.getSchoolyearDataOfClass({
- *   classCode: "3A-2024"
+ *   classCode: "1A"
  * });
  * ```
  */

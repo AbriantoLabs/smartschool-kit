@@ -1,3 +1,4 @@
+#!/usr/bin/env -S deno run
 import inquirer from "npm:inquirer";
 import { parse } from "https://deno.land/std/flags/mod.ts";
 import { SmartschoolClient } from "../src/mod.ts";
