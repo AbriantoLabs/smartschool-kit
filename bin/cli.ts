@@ -27,43 +27,24 @@ async function getMethodParams(method, args, config) {
     ...args,
   };
 
-  if (!args.interactive) {
-    const paramValues = {};
-    for (const [key, paramConfig] of Object.entries(params)) {
-      if (combinedParams[key] !== undefined) {
-        paramValues[key] = combinedParams[key];
-      } else if (paramConfig.default !== undefined) {
-        paramValues[key] = paramConfig.default;
-      } else if (paramConfig.required) {
-        break;
-      }
-    }
-
-    const missingRequired = Object.entries(params)
-      .filter(
-        ([key, config]) => config.required && paramValues[key] === undefined,
-      )
-      .map(([key]) => key);
-
-    if (missingRequired.length === 0) {
-      return paramValues;
-    }
-  }
-
+  // TODO: Official date in interactive mode is not optional it says date is invalid because of the empty string
+  // Close in interactive mode once request is responded
   const questions = Object.entries(params)
-    .filter(([key, paramConfig]) => {
-      if (!args.interactive && combinedParams[key] !== undefined) {
-        return false;
-      }
-      return true;
+    .filter(([key]) => {
+      // Only skip if value was explicitly provided via CLI
+      return combinedParams[key] === undefined;
     })
     .map(([key, paramConfig]) => ({
-      type: "input",
+      type: paramConfig.type === "boolean" ? "confirm" : "input",
       name: key,
-      message: `Enter ${key}:`,
-      default: combinedParams[key] || paramConfig.default,
+      message:
+        paramConfig.type === "boolean" ? `Enable ${key}?` : `Enter ${key}:`,
+      default: combinedParams[key] ?? paramConfig.default,
       validate: (input) => {
-        if (paramConfig.required && !input) {
+        if (
+          paramConfig.required &&
+          (input === undefined || input === null || input === "")
+        ) {
           return `${key} is required`;
         }
         return true;

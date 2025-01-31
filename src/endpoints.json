@@ -19,7 +19,7 @@
     "userlist": { "type": "string", "required": true }
   },
   "addHelpdeskTicket": {
-    "accescode": { "type": "string", "required": true },
+    "accesscode": { "type": "string", "required": true },
     "title": { "type": "string", "required": true },
     "description": { "type": "string", "required": true },
     "priority": { "type": "integer", "required": true },
@@ -56,7 +56,6 @@
     "officialDate": { "type": "string", "required": false }
   },
   "deactivateTwoFactorAuthentication": {
-    "deprecated": true,
     "accesscode": { "type": "string", "required": true },
     "userIdentifier": { "type": "string", "required": true },
     "accountType": { "type": "integer", "required": true }
@@ -131,13 +130,13 @@
   },
   "getClassTeachers": {
     "accesscode": { "type": "string", "required": true },
-    "getAllOwners": { "type": "boolean", "required": true }
+    "getAllOwners": { "type": "boolean", "required": false }
   },
   "getCourses": {
     "accesscode": { "type": "string", "required": true }
   },
   "getHelpdeskMiniDbItems": {
-    "accescode": { "type": "string", "required": true }
+    "accesscode": { "type": "string", "required": true }
   },
   "getReferenceField": {
     "accesscode": { "type": "string", "required": true }

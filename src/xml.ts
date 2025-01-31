@@ -49,14 +49,30 @@ export function generateXML(
 
 export function parseXMLResponse(response: string): any {
   try {
-    if (
-      typeof response === "object" &&
-      !Array.isArray(response) &&
-      response !== null
-    ) {
+    // If response is already an object (including arrays), return it directly
+    if (typeof response === "object" && response !== null) {
       return response;
     }
-    // Try parsing as JSON first
+
+    // Ensure we're working with a string from this point
+    if (typeof response !== "string") {
+      throw new Error("Response must be either an object or a string");
+    }
+
+    // Check for JSON within SOAP-ENV:Body first
+    const soapBodyMatch = response.match(
+      /<SOAP-ENV:Body[^>]*>([\s\S]*?)<\/SOAP-ENV:Body>/i,
+    );
+    if (soapBodyMatch) {
+      const bodyContent = soapBodyMatch[1].trim();
+      // Try to extract JSON (both objects and arrays) from the body content
+      const jsonMatch = bodyContent.match(/[\[{][\s\S]*?[\]}]/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+
+    // If no JSON found in SOAP body, try parsing entire response as JSON
     return JSON.parse(response);
   } catch {
     // If not JSON, continue with XML processing
