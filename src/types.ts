@@ -1,139 +1,323 @@
+/**
+ * Types and interfaces for the Smartschool API
+ * Contains base interfaces and request types for interacting with the Smartschool API
+ * @module types
+ */
+
+/**
+ * Base interface requiring an access code for API authentication
+ * @interface AccessCodeBase
+ */
 export interface AccessCodeBase {
-  /** Access code for the Smartschool API */
+  /**
+   * Access code for authenticating with the Smartschool API
+   * This code must be obtained from your Smartschool administrator
+   */
   accesscode: string;
 }
 
+/**
+ * Configuration interface for connecting to the Smartschool API
+ * @interface SmartschoolConfig
+ * @extends {AccessCodeBase}
+ */
 export interface SmartschoolConfig extends AccessCodeBase {
-  /** Base URL for the Smartschool API */
+  /**
+   * Base URL endpoint for the Smartschool API
+   * @example "https://schoolname.smartschool.be/api"
+   */
   apiEndpoint: string;
 }
 
+/**
+ * Base interface for requests that require a user identifier
+ * @interface UserIdentifierBase
+ */
 export interface UserIdentifierBase {
-  /** Username or internal number of the user */
+  /**
+   * Identifier of the target user - can be either:
+   * - Username (e.g. "john.doe")
+   * - Internal number (e.g. "12345")
+   */
   userIdentifier: string;
 }
 
+/**
+ * Base interface for requests that specify an account type
+ * @interface AccountTypeBase
+ */
 export interface AccountTypeBase {
-  /** Account type of the user, 0 is the user (main-account), 1 first co-account, 2 second co-account, ... */
+  /**
+   * Account type to target:
+   * - 0: Main user account
+   * - 1: First co-account
+   * - 2: Second co-account
+   * - etc.
+   *
+   * 6 accounts in total
+   */
   accountType: number;
 }
 
+/**
+ * Base interface for course-related requests
+ * @interface CourseBase
+ */
 export interface CourseBase {
-  /** Course name */
+  /** Full name of the course */
   coursename: string;
-  /** Course code */
+  /** Unique course code identifier */
   coursedesc: string;
-  /** Course abbreviation */
+  /**
+   * Course visibility status
+   * - 1: Visible
+   * - 0: Hidden
+   */
   visibility?: number;
 }
 
+/**
+ * Base interface for requests that operate on multiple users
+ */
 export interface UserListBase {
-  /** CSV list of unique user codes */
+  /**
+   * Comma-separated list of user identifiers
+   * @example "12345,67890,11223"
+   */
   userlist: string;
 }
 
+/**
+ * Base interface for requests that target multiple groups/classes
+ * @interface GroupIdsBase
+ */
 export interface GroupIdsBase {
-  /** CSV list of unique class- or groupscodes */
+  /**
+   * Comma-separated list of class or group codes
+   * @example "1A,2B,3C"
+   */
   groupIds: string;
 }
 
+/**
+ * Interface for including an optional official date in requests
+ * @interface DateOptional
+ */
 export interface DateOptional {
-  /** Official date for the action, YYYY-MM-DD format */
+  /**
+   * Date when the action should take effect
+   * @format YYYY-MM-DD
+   * @example "2024-09-01"
+   */
   officialDate?: string;
 }
 
+/**
+ * Base interface for class/group-related requests
+ * @interface ClassBase
+ */
 export interface ClassBase {
-  /** Unique class- or groupscode */
+  /**
+   * Unique identifier code for a class or group
+   * @example "1A" or "STEM-GROUP-1"
+   */
   code: string;
 }
 
+/**
+ * Request interface for adding a new course
+ * @interface AddCourse
+ * @extends {AccessCodeBase}
+ * @extends {CourseBase}
+ */
 export interface AddCourse extends AccessCodeBase, CourseBase {
-  /** 1 for visible , 0 for hidden, by default when not provided 1 */
+  /**
+   * Course visibility setting
+   * - 1: Visible (default if not provided)
+   * - 0: Hidden
+   */
   visibility?: number;
 }
 
+/**
+ * Request interface for adding students to a course
+ * @interface AddCourseStudents
+ * @extends {AccessCodeBase}
+ * @extends {CourseBase}
+ * @extends {GroupIdsBase}
+ */
 export interface AddCourseStudents
   extends AccessCodeBase,
     CourseBase,
     GroupIdsBase {}
 
+/**
+ * Request interface for adding a teacher to a course
+ * @interface AddCourseTeacher
+ * @extends {AccessCodeBase}
+ * @extends {CourseBase}
+ * @extends {UserIdentifierBase}
+ */
 export interface AddCourseTeacher
   extends AccessCodeBase,
     CourseBase,
     UserIdentifierBase {
-  /** Unique field user */
+  /** Internal number identifier of the teacher */
   internnummer: string;
 }
 
+/**
+ * Request interface for creating a new helpdesk ticket
+ * @interface AddHelpdeskTicket
+ * @extends {AccessCodeBase}
+ * @extends {UserIdentifierBase}
+ */
 export interface AddHelpdeskTicket extends AccessCodeBase, UserIdentifierBase {
-  /** Title of the helpdesk ticket */
+  /** Title/subject of the helpdesk ticket */
   title: string;
-  /** Description of the helpdesk ticket */
+  /** Detailed description of the issue */
   description: string;
-  /** Priority of the helpdesk ticket */
+  /**
+   * Priority level of the ticket
+   * @example 1: Low, 2: Normal, 3: High
+   */
   priority: number;
-  /** Category of the helpdesk ticket */
+  /** Category ID from the helpdesk mini-database */
   miniDbItem: string;
 }
 
+/**
+ * Request interface for changing group/class owners
+ * @interface ChangeGroupOwners
+ * @extends {AccessCodeBase}
+ * @extends {UserListBase}
+ */
 export interface ChangeGroupOwners extends AccessCodeBase, UserListBase {
-  /** Unique class- or groupscode */
+  /** Target class or group code to modify owners */
   code: string;
 }
 
+/**
+ * Request interface for changing a user's internal number
+ * @interface ChangeInternNumber
+ * @extends {AccessCodeBase}
+ */
 export interface ChangeInternNumber extends AccessCodeBase {
-  /** The current username of the user whose internal number needs to be changed */
+  /** Username of the target user */
   username: string;
-  /** The new internal number to assign to the user */
+  /** New internal number to assign */
   newInternNumber: string;
 }
 
+/**
+ * Request interface for requiring password change at next login
+ * @interface ChangePasswordAtNextLogin
+ * @extends {AccessCodeBase}
+ * @extends {UserIdentifierBase}
+ * @extends {AccountTypeBase}
+ */
 export interface ChangePasswordAtNextLogin
   extends AccessCodeBase,
     UserIdentifierBase,
     AccountTypeBase {}
 
+/**
+ * Request interface for changing a user's username
+ * @interface ChangeUsername
+ * @extends {AccessCodeBase}
+ */
 export interface ChangeUsername extends AccessCodeBase {
-  /** The internal number of the user whose username needs to be changed */
+  /** Current internal number of the user */
   internNumber: string;
-  /** The new username to assign to the user */
+  /** New username to assign */
   newUsername: string;
 }
 
+/**
+ * Request interface for checking sync task status
+ * @interface CheckStatus
+ * @extends {AccessCodeBase}
+ */
 export interface CheckStatus extends AccessCodeBase {
-  /** Unique identifier code of the synchronization task received from startSkoreSync */
+  /** Task ID received from startSkoreSync */
   serviceId: string;
 }
 
+/**
+ * Request interface for removing all members from a group
+ * @interface ClearGroup
+ * @extends {AccessCodeBase}
+ */
 export interface ClearGroup extends AccessCodeBase {
+  /** Group code to clear */
   group: string;
+  /**
+   * When the removal should take effect
+   * @format YYYY-MM-DD
+   */
   officialDate?: string;
 }
 
+/**
+ * Request interface for deleting a class/group
+ * @interface DelClass
+ * @extends {AccessCodeBase}
+ * @extends {ClassBase}
+ */
 export interface DelClass extends AccessCodeBase, ClassBase {}
 
+/**
+ * Request interface for deleting a user from the system
+ * @interface DelUser
+ * @extends {AccessCodeBase}
+ * @extends {UserIdentifierBase}
+ * @extends {DateOptional}
+ */
 export interface DelUser
   extends AccessCodeBase,
     UserIdentifierBase,
     DateOptional {}
 
+/**
+ * Request interface for deleting a user from the system
+ */
+export interface DelUser
+  extends AccessCodeBase,
+    UserIdentifierBase,
+    DateOptional {}
+
+/**
+ * Request interface for retrieving absence records for a specific user in a school year
+ */
 export interface GetAbsents extends AccessCodeBase, UserIdentifierBase {
   /** The school year to get absents for, format: YYYY */
   schoolYear: string;
 }
 
+/**
+ * Request interface for retrieving all absence records for a specific date
+ */
 export interface GetAbsentsByDate extends AccessCodeBase {
   /** The date to get absents for, format: YYYY-MM-DD */
   date: string;
 }
 
+/**
+ * Request interface for retrieving absence records for a specific date and class/group
+ */
 export interface GetAbsentsByDateAndGroup extends GetAbsentsByDate, ClassBase {}
 
+/**
+ * Request interface for retrieving all user accounts in a class/group
+ */
 export interface GetAllAccounts extends AccessCodeBase, ClassBase {
   /** Whether to get subgroups recursively ('1') or not ('0') */
   recursive: string;
 }
 
+/**
+ * Request interface for creating or updating a class/group in the system
+ */
 export interface SaveClass extends AccessCodeBase {
   /** The name of the class or group */
   name: string;
@@ -153,6 +337,9 @@ export interface SaveClass extends AccessCodeBase {
   schoolYearDate?: string;
 }
 
+/**
+ * Request interface for setting a new password for a user account
+ */
 export interface SavePassword
   extends AccessCodeBase,
     UserIdentifierBase,
@@ -163,6 +350,9 @@ export interface SavePassword
   changePasswordAtNextLogin: number;
 }
 
+/**
+ * Request interface for creating or updating a user account in the system
+ */
 export interface SaveUser extends AccessCodeBase {
   /** The username for the user account */
   username: string;
@@ -228,6 +418,14 @@ export interface SaveUser extends AccessCodeBase {
   [key: string]: unknown;
 }
 
+/**
+ * Request interface for adding a user to a specific class in Smartschool.
+ * Used to assign students or teachers to classes while optionally specifying an official date.
+ *
+ * @interface SaveUserToClass
+ * @extends {AccessCodeBase}
+ * @extends {UserIdentifierBase}
+ */
 export interface SaveUserToClass extends AccessCodeBase, UserIdentifierBase {
   /** The class code to add the user to */
   class: string;
@@ -241,6 +439,30 @@ export interface SaveUserToClass extends AccessCodeBase, UserIdentifierBase {
 
 /**
  * Interface for sending messages to a user's main account or co-account through the Smartschool API
+ */
+/**
+ * Interface for sending messages to users through the Smartschool API.
+ * Allows sending messages to main accounts and co-accounts with optional attachments
+ * and LVS (Student Tracking System) integration.
+ *
+ * @interface SendMsg
+ * @extends {AccessCodeBase} Base interface requiring an access code
+ * @extends {UserIdentifierBase} Base interface requiring a user identifier
+ *
+ * @example
+ * ```typescript
+ * // Send a message to a student with an attachment
+ * const message: SendMsg = {
+ *   accesscode: "your-access-code",
+ *   userIdentifier: "john.doe",
+ *   title: "Assignment Feedback",
+ *   body: "Great work on your latest assignment!",
+ *   senderIdentifier: "teacher.smith",
+ *   attachments: ["base64EncodedFile"],
+ *   coaccount: 0,  // Send to main account
+ *   copyToLVS: true // Copy to student tracking system
+ * };
+ * ```
  */
 export interface SendMsg extends AccessCodeBase, UserIdentifierBase {
   /** The title/subject of the message */
@@ -279,6 +501,10 @@ export interface SendMsg extends AccessCodeBase, UserIdentifierBase {
   copyToLVS?: boolean;
 }
 
+/**
+ * Request interface for setting/updating a user's account photo in Smartschool
+ * The photo will be used as the user's profile picture
+ */
 export interface SetAccountPhoto extends AccessCodeBase, UserIdentifierBase {
   /**
    * Base64 encoded photo data
@@ -287,6 +513,10 @@ export interface SetAccountPhoto extends AccessCodeBase, UserIdentifierBase {
   photo: string;
 }
 
+/**
+ * Request interface for changing a user's account status in Smartschool
+ * Can be used to activate/deactivate accounts or set temporary access periods
+ */
 export interface SetAccountStatus extends AccessCodeBase, UserIdentifierBase {
   /**
    * The new status to set for the account
@@ -295,23 +525,41 @@ export interface SetAccountStatus extends AccessCodeBase, UserIdentifierBase {
   accountStatus: UserAccountStates;
 }
 
+/**
+ * Request interface for retrieving detailed user information from Smartschool
+ */
 export interface UserDetails extends AccessCodeBase, UserIdentifierBase {}
 
+/**
+ * Request interface for retrieving user details using their internal number
+ * Alternative to UserDetails when only the internal number is known
+ */
 export interface GetUserDetailsByNumber extends AccessCodeBase {
   /** The internal number of the user to get details for */
   number: string;
 }
 
+/**
+ * Request interface for retrieving user details using their username
+ * Alternative to UserDetails when only the username is known
+ */
 export interface GetUserDetailsByUsername extends AccessCodeBase {
   /** The username of the user to get details for */
   username: string;
 }
 
+/**
+ * Request interface for retrieving user details using their scannable code
+ * Alternative to UserDetails when only the scannable code (e.g., from ID card) is known
+ */
 export interface GetUserDetailsByScannableCode extends AccessCodeBase {
   /** The scannable code of the user to get details for */
   scannableCode: string;
 }
 
+/**
+ * Request interface for retrieving a user's official class assignment on a specific date
+ */
 export interface GetUserOfficialClass
   extends AccessCodeBase,
     UserIdentifierBase {
@@ -319,63 +567,121 @@ export interface GetUserOfficialClass
   date: string;
 }
 
+/**
+ * Request interface for retrieving the list of titular teachers for classes
+ */
 export interface GetClassTeachers extends AccessCodeBase {
   /** Gets all class titulars (if true) or only the first titular (if false, default) */
   getAllOwners?: boolean;
 }
 
+/**
+ * Request interface for retrieving academic year information for a specific class
+ */
 export interface GetSchoolyearDataOfClass extends AccessCodeBase {
   /** The class code to get school year data for */
   classCode: string;
 }
 
+/**
+ * Request interface for disabling two-factor authentication on a user account
+ */
 export interface DeactivateTwoFactorAuthentication
   extends AccessCodeBase,
     UserIdentifierBase,
     AccountTypeBase {}
 
+/**
+ * Request interface for forcing a password reset on next login for a user account
+ */
 export interface ForcePasswordReset
   extends AccessCodeBase,
     UserIdentifierBase,
     AccountTypeBase {}
 
+/**
+ * Request interface for retrieving absence records with their platform-defined aliases
+ */
 export interface GetAbsentsWithAlias extends GetAbsents {}
 
+/**
+ * Request interface for retrieving absence records with aliases for a specific date
+ */
 export interface GetAbsentsWithAliasByDate extends GetAbsentsByDate {}
 
+/**
+ * Request interface for retrieving absence records by date, indexed by internal numbers
+ */
 export interface GetAbsentsWithInternalNumberByDate extends AccessCodeBase {
   /** The date to get absents for, format: YYYY-MM-DD */
   date: string;
 }
 
+/**
+ * Request interface for retrieving absence records by date, indexed by usernames
+ * Returns absences for all students on a specific date, using usernames as keys
+ */
 export interface GetAbsentsWithUsernameByDate extends AccessCodeBase {
   /** The date to get absents for, format: YYYY-MM-DD */
   date: string;
 }
 
+/**
+ * Request interface for retrieving a user's profile photo from Smartschool
+ */
 export interface GetAccountPhoto extends AccessCodeBase, UserIdentifierBase {}
 
+/**
+ * Request interface for retrieving extended account information for all users
+ */
 export interface GetAllAccountsExtended extends GetAllAccounts {}
 
+/**
+ * Request interface for retrieving all groups and classes defined in Smartschool
+ */
 export interface GetAllGroupsAndClasses extends AccessCodeBase {}
 
+/**
+ * Request interface for retrieving the list of classes in CSV format
+ */
 export interface GetClassList extends AccessCodeBase {}
 
+/**
+ * Request interface for retrieving the list of classes in JSON format
+ */
 export interface GetClassListJson extends AccessCodeBase {}
 
+/**
+ * Request interface for retrieving helpdesk category items
+ */
 export interface GetHelpdeskMiniDbItems extends AccessCodeBase {}
 
+/**
+ * Request interface for retrieving reference field definitions
+ */
 export interface GetReferenceField extends AccessCodeBase {}
 
+/**
+ * Request interface for retrieving Skore class-teacher-course relationships
+ */
 export interface GetSkoreClassTeacherCourseRelation extends AccessCodeBase {}
 
+/**
+ * Request interface for retrieving a student's academic career history
+ */
 export interface GetStudentCareer extends AccessCodeBase, UserIdentifierBase {}
 
+/**
+ * Request interface for removing a co-account from a user's profile
+ */
 export interface RemoveCoAccount
   extends AccessCodeBase,
     UserIdentifierBase,
     AccountTypeBase {}
 
+/**
+ * Request interface for removing a user from a class or group
+ */
 export interface RemoveUserFromGroup
   extends AccessCodeBase,
     UserIdentifierBase {
@@ -385,6 +691,9 @@ export interface RemoveUserFromGroup
   officialDate?: string;
 }
 
+/**
+ * Request interface for replacing a user's internal number
+ */
 export interface ReplaceInum extends AccessCodeBase {
   /** The current internal number */
   oldInum: string;
@@ -392,20 +701,35 @@ export interface ReplaceInum extends AccessCodeBase {
   newInum: string;
 }
 
+/**
+ * Request interface for retrieving error codes in CSV format
+ */
 export interface ReturnCsvErrorCodes extends AccessCodeBase {}
 
+/**
+ * Request interface for retrieving error codes in JSON format
+ */
 export interface ReturnJsonErrorCodes extends AccessCodeBase {}
 
+/**
+ * Request interface for updating multiple classes via CSV data
+ */
 export interface SaveClassList extends AccessCodeBase {
   /** Serialized list of classes in CSV format */
   serializedList: string;
 }
 
+/**
+ * Request interface for updating multiple classes via JSON data
+ */
 export interface SaveClassListJson extends AccessCodeBase {
   /** Serialized array containing the list of classes */
   jsonList: string;
 }
 
+/**
+ * Request interface for creating or updating a group
+ */
 export interface SaveGroup extends AccessCodeBase {
   /** The name of the group */
   name: string;
@@ -419,6 +743,27 @@ export interface SaveGroup extends AccessCodeBase {
   untis: string;
 }
 
+/**
+ * Request interface for saving school year data for a class in Smartschool.
+ * Used to update or assign administrative and organizational details for a specific class's school year.
+ *
+ * @interface SaveSchoolyearDataOfClass
+ * @extends {AccessCodeBase}
+ *
+ * @example Example
+ * ```typescript
+ * {
+ *   accesscode: "your-access-code",
+ *   classCode: "3A",
+ *   date: "2024-09-01",
+ *   instituteNumber: "123456",
+ *   administrativeGroupNumber: "789",
+ *   residence: "Campus A",
+ *   domain: "Sciences",
+ *   principal: "John Smith"
+ * }
+ * ```
+ */
 export interface SaveSchoolyearDataOfClass extends AccessCodeBase {
   /** The class code to save school year data for */
   classCode: string;
@@ -436,6 +781,15 @@ export interface SaveSchoolyearDataOfClass extends AccessCodeBase {
   principal: string;
 }
 
+/**
+ * Request interface for saving a user account's signature.
+ * Used to set email/message signatures for main accounts and co-accounts in Smartschool.
+ *
+ * @interface SaveSignature
+ * @extends {AccessCodeBase} Base interface requiring an access code
+ * @extends {UserIdentifierBase} Base interface requiring a user identifier
+ * @extends {AccountTypeBase} Base interface specifying which account to modify
+ */
 export interface SaveSignature
   extends AccessCodeBase,
     UserIdentifierBase,
@@ -598,11 +952,37 @@ export interface SaveUserParameter extends AccessCodeBase, UserIdentifierBase {
   paramValue: string;
 }
 
+/**
+ * Request interface for adding a user to multiple classes in a single operation.
+ * Uses a CSV list format to specify multiple class codes at once.
+ *
+ * @interface SaveUserToClasses
+ * @extends {AccessCodeBase} Base interface requiring an access code
+ * @extends {UserIdentifierBase} Base interface requiring a user identifier
+ */
 export interface SaveUserToClasses extends AccessCodeBase, UserIdentifierBase {
   /** CSV list of class codes to add the user to */
   csvList: string;
 }
 
+/**
+ * Request interface for adding a user to multiple classes and groups in a single operation.
+ * Allows bulk assignment of users to classes/groups while controlling whether existing memberships are preserved.
+ *
+ * @interface SaveUserToClassesAndGroups
+ * @extends {AccessCodeBase} Base interface requiring an access code
+ * @extends {UserIdentifierBase} Base interface requiring a user identifier
+ *
+ * @example Example
+ * ```typescript
+ * const request: SaveUserToClassesAndGroups = {
+ *   accesscode: "your-access-code",
+ *   userIdentifier: "john.doe",
+ *   csvList: "1A,STEM-GROUP-1,2B",
+ *   keepOld: 1  // Preserve existing memberships
+ * };
+ * ```
+ */
 export interface SaveUserToClassesAndGroups
   extends AccessCodeBase,
     UserIdentifierBase {
@@ -612,22 +992,53 @@ export interface SaveUserToClassesAndGroups
   keepOld: number;
 }
 
-export interface SendMsg extends AccessCodeBase, UserIdentifierBase {
-  title: string;
-  body: string;
-  senderIdentifier: string;
-  attachments?: string[];
-  coaccount?: number;
-  copyToLVS?: boolean;
-}
-
+/**
+ * Request interface for initiating a Skore synchronization task.
+ * This interface represents a request to start synchronizing data with the Skore system.
+ * Only requires an access code for authentication, no additional parameters needed.
+ *
+ * Upon successful request, it returns a service ID that can be used to check the sync status
+ * using the CheckStatus interface.
+ *
+ * @interface StartSkoreSync
+ * @extends {AccessCodeBase}
+ *
+ * @example Example
+ * ```typescript
+ * const request: StartSkoreSync = {
+ *   accesscode: "your-access-code"
+ * };
+ * ```
+ */
 export interface StartSkoreSync extends AccessCodeBase {}
 
+/**
+ * Request interface for unregistering a student from the school in Smartschool.
+ * This removes the student from all active classes/groups and marks them as unregistered,
+ * while preserving their historical data.
+ *
+ * @interface UnregisterStudent
+ * @extends {AccessCodeBase} Base interface requiring an access code
+ * @extends {UserIdentifierBase} Base interface requiring a user identifier
+ *
+ * @example Example
+ * ```typescript
+ * const request: UnregisterStudent = {
+ *   accesscode: "your-access-code",
+ *   userIdentifier: "john.doe",
+ *   officialDate: "2024-06-30"  // End of school year
+ * };
+ * ```
+ */
 export interface UnregisterStudent extends AccessCodeBase, UserIdentifierBase {
   /** Optional official date for unregistration, format: YYYY-MM-DD */
   officialDate?: string;
 }
 
+/**
+ * Union type representing all possible parameter types for Smartschool API requests.
+ * Combines all request interface types into a single type for API method parameters.
+ */
 export type SmartschoolParams =
   | SaveUser
   | SetAccountStatus
@@ -680,6 +1091,19 @@ export type SmartschoolParams =
   | AddHelpdeskTicket
   | {};
 
+/**
+ * Valid co-account type values for Smartschool
+ * These types define the relationship between the main account holder and the co-account user
+ *
+ * @example
+ * ```typescript
+ * // Setting co-account type for parent
+ * const coAccountType: CoAccountTypes = "Moeder";
+ *
+ * // Setting co-account type for staff
+ * const staffType: CoAccountTypes = "Interimaris";
+ * ```
+ */
 export type CoAccountTypes =
   | "Maak uw keuze"
   | "Moeder"
@@ -712,6 +1136,24 @@ export type CoAccountTypes =
 /** For co-account status: 'actief', 'niet actief', or 'actief tot en met yyyy/mm/dd' */
 export type UserAccountStates = "actief" | "niet actief" | string;
 
+/**
+ * Represents a group or class that a user is a member of in Smartschool.
+ * Contains identification and descriptive information about the group/class.
+ *
+ * @interface UserGroup
+ *
+ * @example
+ * ```typescript
+ * const group: UserGroup = {
+ *   id: "123",
+ *   code: "1A",
+ *   name: "First Year Group A",
+ *   desc: "Main class group for first year students, section A",
+ *   isKlas: true,
+ *   isOfficial: true
+ * };
+ * ```
+ */
 export interface UserGroup {
   id: string;
   code: string;
@@ -721,20 +1163,36 @@ export interface UserGroup {
   isOfficial: boolean;
 }
 
-// export interface CoAccount {
-//   voornaam: string;
-//   naam: string;
-//   email: string;
-//   email_isVerified: boolean;
-//   telefoonnummer: string;
-//   mobielnummer: string;
-//   type: CoAccountTypes | number;
-//   authenticator_app_enabled: boolean;
-//   yubikey_enabled: boolean;
-//   status: UserAccountStates;
-//   last_successful_login?: string;
-// }
-
+/**
+ * Response interface for retrieving detailed user information from Smartschool.
+ * Contains comprehensive personal, contact, school-related information and co-account details for a user.
+ *
+ * @interface UserDetailsResponse
+ *
+ * @example Example
+ * ```typescript
+ * const userDetails: UserDetailsResponse = {
+ *   voornaam: "John",
+ *   naam: "Doe",
+ *   gebruikersnaam: "john.doe",
+ *   internnummer: "12345",
+ *   status: "actief",
+ *   emailadres: "john.doe@school.be",
+ *   basisrol: "leerling",
+ *   groups: [
+ *     {
+ *       id: "123",
+ *       code: "1A",
+ *       name: "First Year Class A",
+ *       desc: "Main class group for 1A",
+ *       isKlas: true,
+ *       isOfficial: true
+ *     }
+ *   ],
+ *   // ... other fields
+ * };
+ * ```
+ */
 export interface UserDetailsResponse {
   // Personal Information
   /** First name of the user */
@@ -1068,28 +1526,41 @@ export interface GetUserOfficialClassResponse {
  * - `"Z"`: Sick/Illness - absent due to sickness
  * - `"D"`: Doctor - absent for medical appointment
  * - `"B"`: Known - absence was notified in advance
- * - `"R"`: Reason - reason provided for absence
+ * - `"R"`: Unforeseen - existential reason for absence e.g. family emergency
  * - `"-"`: Unknown - unexplained/unexcused absence
- * - `"T"`: Suspension - temporary suspension from school
- * - `"U"`: Expelled - expelled from school
- * - `"S"`: Skip/Truant - intentionally skipped class
- * - `"A"`: Administrative - administrative absence
- * - `"E"`: Excused - excused absence with valid reason
- * @todo verify codes
+ * - `"G"`: Spread - spread of lesson program
+ * - `"C"`: Topsport - absence due to top sports activities
+ * - `"H"`: Revalidation - absence due to revalidation
+ * - `"O"`: Childcare - absence due to childcare
+ * - `"Q"`: Mourning - absence due to mourning
+ * - `"P"`: Personal - personal reasons for absence
+ * - `"W"`: Internship work - absence due to internship work
+ * - `"M"`: Absent internship - absence from internship work
+ * - `"J"`: Maternity leave - absence due to maternity leave
+ * - `"Y"`: Suspension - absence due to suspension
+ * - `"U"`: Temporary termination - temporary termination of the student
+ * - `"T"`: Termination - termination of the student
  */
 export type AbsenceCode =
-  | "|"
-  | "L"
-  | "Z"
-  | "D"
-  | "B"
-  | "R"
-  | "-"
-  | "T"
-  | "U"
-  | "S"
-  | "A"
-  | "E";
+  | "|" // Present
+  | "L" // Late
+  | "Z" // Sick/Illness
+  | "D" // Doctor
+  | "B" // Known
+  | "R" // Unforeseen
+  | "-" // Unknown
+  | "G" // Spread
+  | "C" // Topsport
+  | "H" // Revalidation
+  | "O" // Childcare
+  | "Q" // Mourning
+  | "P" // Personal
+  | "W" // Internship work
+  | "M" // Absent internship
+  | "J" // Maternity leave
+  | "Y" // Suspension
+  | "U" // Temporary termination
+  | "T"; // Termination
 
 /**
  * Response interface for absence data from Smartschool API.
