@@ -1585,3 +1585,40 @@ export interface GetClassListJsonResponse
     /** Identifier used for Untis timetable system integration */
     untis: string;
   }> {}
+
+/**
+ * Response interface for retrieving absences by date using usernames.
+ * Maps usernames to their morning (am) and afternoon (pm) absence records.
+ *
+ * @example Example
+ * ```typescript
+ * {
+ *   "jan.roe": {
+ *     "am": "|",    // Present in morning
+ *     "pm": "Z"     // Sick in afternoon
+ *   },
+ *   "john.doe": {
+ *     "am": "L",    // Late in morning
+ *     "pm": "|"     // Present in afternoon
+ *   }
+ * }
+ * ```
+ */
+export interface GetAbsentsWithUsernameByDateResponse {
+  /**
+   * Maps usernames to absence records
+   * @key Username of the student
+   */
+  [username: string]: {
+    /**
+     * Morning absence code
+     * @link AbsenceCode
+     */
+    am: AbsenceCode | null;
+    /**
+     * Afternoon absence code
+     * @link AbsenceCode
+     */
+    pm: AbsenceCode | null;
+  };
+}

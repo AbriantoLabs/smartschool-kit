@@ -1153,6 +1153,41 @@ export class SmartschoolClient {
   }
 
   /**
+   * Retrieve official absences (morning and afternoon) of all students for a specific date.
+   * Returns a JSON object with usernames as keys.
+   *
+   * @param data GetAbsentsWithUsernameByDate
+   * @returns Promise<GetAbsentsByDateResponse>
+   * @throws SmartschoolError if the API returns an error
+   *
+   * @example Example
+   * ```typescript
+   * const response = await client.getAbsentsWithUsernameByDate({
+   *   date: "2024-01-15"
+   * });
+   * // Response example:
+   * // {
+   * //   "john.doe": {
+   * //     "am": "|",    // Present
+   * //     "pm": "Z"     // Sick
+   * //   },
+   * //   "jane.smith": {
+   * //     "am": "L",    // Late
+   * //     "pm": "|"     // Present
+   * //   }
+   * // }
+   * ```
+   */
+  getAbsentsWithUsernameByDate(
+    data: GetAbsentsWithUsernameByDate,
+  ): Promise<GetAbsentsWithUsernameByDate> {
+    return this.makeRequest(
+      "getAbsentsWithUsernameByDate",
+      data,
+    ) as Promise<GetAbsentsWithUsernameByDate>;
+  }
+
+  /**
    * Retrieve all Smartschool API error codes in JSON format.
    *
    * @returns Promise containing a JSON object with all error codes and their descriptions
