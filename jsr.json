@@ -1,5 +1,5 @@
 {
-  "name": "@abrianto/smartschool-client",
+  "name": "@abrianto/smartschool-kit",
   "version": "0.0.1",
   "license": "MIT",
   "exports": "./src/mod.ts",
