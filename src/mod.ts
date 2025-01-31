@@ -1391,7 +1391,8 @@ export class SmartschoolClient {
    * Retrieve Skore class-teacher-course relationships in JSON format.
    * This method returns a structured overview of which teachers teach which courses in which classes.
    *
-   * @beta This method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete This method has not been tested yet
+   *
    * @returns Promise containing a JSON object with class-teacher-course relationships
    * @throws SmartschoolError if the API returns an error
    *
@@ -1447,7 +1448,8 @@ export class SmartschoolClient {
    * Update a list of classes using a serialized array format.
    * This method allows you to update multiple classes in a single API call.
    *
-   * @beta This method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete This method has not been tested yet
+   *
    * @param data - The class list data
    * @param data.serializedList - A serialized array containing all classes to update
    * @returns Returning true if successful
@@ -1473,7 +1475,8 @@ export class SmartschoolClient {
    * Update a list of classes using a JSON array format.
    * This method allows you to update multiple classes in a single API call using JSON notation.
    *
-   * @beta This method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete This method has not been tested yet
+   *
    * @param data - The class list data
    * @param data.jsonList - A JSON array containing all classes to update
    * @returns Returning true if successful
@@ -1550,7 +1553,8 @@ export class SmartschoolClient {
    * Retrieves user information (first name, last name, username, internal number, and official class number)
    * for all users in a specified group. Returns base64 encoded XML.
    *
-   * @beta Method has been tested but is returning a weird XML response
+   * **IMPORTANT NOTE** Incomplete Method has been tested but is returning a weird XML response
+   *
    * @param data GetAllAccounts
    * @returns Promise containing base64 encoded XML with user information
    * @throws SmartschoolError if the API returns an error
@@ -1580,7 +1584,8 @@ export class SmartschoolClient {
    * Check the status of a Skore synchronization task that was started using startSkoreSync.
    * This method allows you to monitor the progress of a synchronization job.
    *
-   * @beta Method hasn't been tested yet
+   * **IMPORTANT NOTE** Incomplete Method hasn't been tested yet
+   *
    * @param data CheckStatus
    * @returns Promise containing one of these status values:
    * - "no_status": No task found for the provided serviceId
@@ -1727,7 +1732,8 @@ export class SmartschoolClient {
    * For official classes: the student will be removed from their current official class and
    * linked to the new official class provided in the list.
    *
-   * @beta Method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete Method has not been tested yet
+   *
    * @param data SaveUserToClasses
    * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
@@ -1750,7 +1756,8 @@ export class SmartschoolClient {
    * This method allows you to either add new memberships to existing ones or replace all existing memberships.
    * If there are any errors during processing, a CSV file with error codes will be returned.
    *
-   * @beta Method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete Method has not been tested yet
+   *
    * @param data SaveUserToClassesAndGroups
    * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
@@ -1783,7 +1790,8 @@ export class SmartschoolClient {
    * Update the school year data for a specified class.
    * This method allows you to modify various administrative details for a class within a specific school year.
    *
-   * @beta Method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete Method has not been tested yet
+   *
    * @param data SaveSchoolyearDataOfClass
    * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
@@ -1809,7 +1817,8 @@ export class SmartschoolClient {
    * Retrieve the unique reference field that is configured in the platform.
    * This method returns which field ('number' or 'username') is used as the unique identifier in the platform.
    *
-   * @beta Don't understand this method
+   * **IMPORTANT NOTE** Incomplete Don't understand this method
+   *
    * @returns Promise containing the reference field setting ('number' or 'username')
    * @throws SmartschoolError if the API returns an error
    *
@@ -1865,7 +1874,8 @@ export class SmartschoolClient {
    * Retrieve a list of all courses in Smartschool.
    * Returns a JSON object containing course information.
    *
-   * @beta Method has been tester but it's return weird XML
+   * **IMPORTANT NOTE** Incomplete Method has been tester but it's return weird XML
+   *
    * @returns Promise<string>
    * @throws SmartschoolError if the API returns an error
    *
@@ -1885,7 +1895,8 @@ export class SmartschoolClient {
    * Unregister a student from Smartschool.
    * This method allows you to officially withdraw a student from the school.
    *
-   * @beta Method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete Method has not been tested yet
+   *
    * @param data UnregisterStudent
    * @returns Returning true if successful
    *
@@ -1913,7 +1924,8 @@ export class SmartschoolClient {
    * Start the synchronization of classes and students from Smartschool to Skore.
    * This method allows you to initiate a sync operation that will update Skore with the latest data from Smartschool.
    *
-   * @beta Method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete Method has not been tested yet
+   *
    * @returns Promise containing a JSON object with the UUID of the synchronization task
    * @throws SmartschoolError if the API returns an error
    *
@@ -1946,7 +1958,8 @@ export class SmartschoolClient {
    * Use the getHelpdeskMiniDbItems() method to retrieve all available mini database items
    * that can be used in the Helpdesk module.
    *
-   * @beta Method has not been tested yet
+   * **IMPORTANT NOTE** Incomplete Method has not been tested yet
+   *
    * @param data AddHelpdeskTicket
    * @returns Returning true if successful
    * @throws SmartschoolError if the API returns an error
@@ -2035,7 +2048,8 @@ export class SmartschoolClient {
    * Retrieve a complete list of all groups and classes in Smartschool.
    * Returns a JSON object containing the hierarchical structure of groups and classes.
    *
-   * @beta Method has been tested, returns a weird XML
+   * **IMPORTANT NOTE** Incomplete method has been tested, returns a weird XML
+   *
    * @returns Promise containing a JSON object with all groups and classes
    * @throws SmartschoolError if the API returns an error
    *
@@ -2056,7 +2070,8 @@ export class SmartschoolClient {
    * Returns a serialized array containing class information including name, description,
    * visibility, unique class code, and whether it's an official class.
    *
-   * @beta Tested but returns empty object
+   * **IMPORTANT NOTE** Incomplete tested but returns empty object
+   *
    * @returns Promise containing a serialized array with class information
    * @throws SmartschoolError if the API returns an error
    *
