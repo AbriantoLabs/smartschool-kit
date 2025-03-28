@@ -35,8 +35,8 @@ const client = new SmartschoolClient({
 // Create a user
 await client.saveUser({
   username: "john.doe",
-  firstName: "John",
-  lastName: "Doe",
+  name: "John",
+  surname: "Doe",
   email: "john@example.com",
   basisrol: "leerkracht"
 });
@@ -61,13 +61,14 @@ const userDetails = await client.getUserDetails({
 # Get help
 deno run --allow-net ./bin/cli.ts --help
 
-# Create a user
+# Create a user, skip optional parameters
 deno run --allow-net ./bin/cli.ts \
   --method=saveUser \
   --config=./config.json \
   --username=john.doe \
-  --firstName=John \
-  --lastName=Doe
+  --name=John \
+  --surname=Doe \
+  --skip
 
 # Send a message
 deno run --allow-net --allow-read --allow-env ./bin/cli.ts \

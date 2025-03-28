@@ -28,29 +28,52 @@ async function getMethodParams(method, args, config) {
     ...args,
   };
 
+  const types = {
+    boolean: "confirm",
+    list: "list",
+    default: "input",
+  };
+
   // TODO: Official date in interactive mode is not optional it says date is invalid because of the empty string
   // Close in interactive mode once request is responded
   const questions = Object.entries(params)
-    .filter(([key]) => {
+    .filter(([key, paramConfig]) => {
       // Only skip if value was explicitly provided via CLI
-      return combinedParams[key] === undefined;
+      return (
+        combinedParams[key] === undefined &&
+        paramConfig.required &&
+        !(args.skip && !paramConfig.required)
+      );
     })
-    .map(([key, paramConfig]) => ({
-      type: paramConfig.type === "boolean" ? "confirm" : "input",
-      name: key,
-      message:
-        paramConfig.type === "boolean" ? `Enable ${key}?` : `Enter ${key}:`,
-      default: combinedParams[key] ?? paramConfig.default,
-      validate: (input) => {
-        if (
-          paramConfig.required &&
-          (input === undefined || input === null || input === "")
-        ) {
-          return `${key} is required`;
-        }
-        return true;
-      },
-    }));
+    .map(([key, paramConfig]) => {
+      const messages = {
+        boolean: `Enable ${key}`,
+        list: `Choose ${key}`,
+        default: `Enter ${key}`,
+      };
+
+      const object = {
+        type: types[paramConfig.type] ?? messages.default,
+        name: key,
+        message: messages[paramConfig.type] ?? messages.default,
+        default: combinedParams[key] ?? paramConfig.default,
+        validate: (input) => {
+          if (
+            paramConfig.required &&
+            (input === undefined || input === null || input === "")
+          ) {
+            return `${key} is required`;
+          }
+          return true;
+        },
+      };
+
+      if (paramConfig.type === "list") {
+        object.choices = paramConfig.options;
+      }
+
+      return object;
+    });
 
   const answers = await inquirer.prompt(questions);
   return {
@@ -81,6 +104,7 @@ Options:
   --config        Path to config file (contains apiEndpoint and accessCode)
   --interactive   Force interactive mode even if parameters are provided
   --help, -h      Show this help message
+  --skip          Skip optional parameters
 Parameters can be provided either as command line arguments or interactively:
   --username=john.doe
   --firstName=John
@@ -139,6 +163,7 @@ Examples:
     const result = await client[method](params);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
+    throw error;
     console.error("Error:", error.message);
     Deno.exit(1);
   }
