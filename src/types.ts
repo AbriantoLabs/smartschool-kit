@@ -367,6 +367,11 @@ export interface SaveUser extends AccessCodeBase {
    * - 'leerkracht' (teacher)
    * - 'directie' (management)
    * - 'andere' (other)
+   * When fetching user details, this field is returned as 'basisrol', but as integer
+   * - 0: 'leerkracht'
+   * - 1: 'leerling'
+   * - 13: 'andere'
+   * - 30: 'directie'
    */
   basisrol: string;
   /** Primary password (required for new users) */
