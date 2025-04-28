@@ -1,0 +1,39 @@
+{
+  "name": "@abrianto/smartschool-kit",
+  "version": "0.0.7",
+  "description": "A toolkit for Smartschool API interactions, both as a library and CLI. ",
+  "main": "./dist/mod.js",
+  "exports": {
+    ".": {
+      "import": "./dist/mod.js",
+      "require": "./dist/mod.js",
+      "types": "./dist/mod.d.ts"
+    }
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "deno test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbriantoLabs/smartschool-kit.git"
+  },
+  "keywords": [
+    "smartschool",
+    "api",
+    "xml",
+    "abrianto"
+  ],
+  "author": "Maarten Coppens",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AbriantoLabs/smartschool-kit/issues"
+  },
+  "homepage": "https://github.com/AbriantoLabs/smartschool-kit#readme",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

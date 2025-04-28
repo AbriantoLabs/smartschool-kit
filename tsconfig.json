@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Or a later ES version compatible with your target Node.js versions
+    "module": "CommonJS", // Or "ESNext" if targeting environments that support it
+    "outDir": "./dist", // The directory where compiled JavaScript will be placed
+    "strict": true, // Recommended for type safety
+    "esModuleInterop": true, // Recommended for better interop with CommonJS and ES Modules
+    "declaration": true, // Generate declaration files (*.d.ts) for TypeScript users
+    "allowImportingTsExtensions": true, // Allow importing TypeScript files with .ts extension
+    "noEmit": true,
+    // Add other options as needed for your project
+  },
+  "include": [
+    "src/**/*.ts" // Adjust this to include your TypeScript source files
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts", // Exclude test files
+    "**/examples/**/*.ts" // Exclude example files
+  ]
+}
