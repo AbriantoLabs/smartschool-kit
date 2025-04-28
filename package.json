@@ -1,6 +1,6 @@
 {
   "name": "@abrianto/smartschool-kit",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A toolkit for Smartschool API interactions, both as a library and CLI. ",
   "main": "./dist/mod.js",
   "exports": {
@@ -34,7 +34,7 @@
     "url": "https://github.com/AbriantoLabs/smartschool-kit/issues"
   },
   "files": [
-    "dist/" 
+    "dist/"
   ],
   "homepage": "https://github.com/AbriantoLabs/smartschool-kit#readme",
   "devDependencies": {
