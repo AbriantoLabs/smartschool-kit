@@ -14,7 +14,7 @@
     "test": "tests"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node fix-imports.js",
     "test": "deno test",
     "prepublishOnly": "npm run build"
   },
