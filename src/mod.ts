@@ -318,6 +318,8 @@ import type {
   GetClassListJsonResponse,
 } from "./types.ts";
 
+export * from "./types.ts";
+
 /**
  * Custom error class for handling Smartschool API errors with error codes.
  * Extends the standard Error class to provide additional Smartschool-specific error information.
@@ -336,7 +338,7 @@ import type {
  * }
  * ```
  */
-class SmartschoolError extends Error {
+export class SmartschoolError extends Error {
   /**
    * Creates a new SmartschoolError instance
    *
@@ -486,6 +488,8 @@ export class SmartschoolClient {
       accesscode: opts.needsAuth ? this.config.accesscode : undefined,
       ...params,
     });
+
+    console.log(xmlBody);
 
     const response = await fetch(this.config.apiEndpoint, {
       method: "POST",
@@ -1685,10 +1689,10 @@ export class SmartschoolClient {
    *   userIdentifier: "john.doe",
    *   password: "NewSecure123!",
    *   accountType: "0",
-   *   changePasswordAtNextLogin: 1
+   *   changePasswordAtNextLogin: 1 // Not required, defaults to 1
    * });
    *
-   * // Set co-account password without forced change, exists but doesn't work
+   * // Set co-account password without forced change, even though changePasswordAtNextLogin exists it doesn't work
    * const response = await client.savePassword({
    *   userIdentifier: "john.doe",
    *   password: "CoAccount456#",

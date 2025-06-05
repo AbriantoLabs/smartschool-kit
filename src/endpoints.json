@@ -223,7 +223,7 @@
     "userIdentifier": { "type": "string", "required": true },
     "password": { "type": "string", "required": true },
     "accountType": { "type": "integer", "required": true },
-    "changePasswordAtNextLogin": { "type": "integer", "required": true }
+    "changePasswordAtNextLogin": { "type": "integer", "required": false }
   },
   "saveSchoolyearDataOfClass": {
     "accesscode": { "type": "string", "required": true },
