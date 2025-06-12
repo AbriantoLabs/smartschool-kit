@@ -1,6 +1,6 @@
 {
   "name": "@abrianto/smartschool-kit",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "A toolkit for Smartschool API interactions, both as a library and CLI. ",
   "bin": {
     "smartschool": "./dist/node-cli.js"
