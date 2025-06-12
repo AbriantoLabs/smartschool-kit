@@ -333,6 +333,8 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@types/node@^22.15.30",
+        "npm:inquirer@^8.2.5",
         "npm:typescript@^5.8.3"
       ]
     }

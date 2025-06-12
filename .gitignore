@@ -2,3 +2,5 @@ config.json
 docs/
 node_modules/
 dist/
+
+**/.claude/settings.local.json

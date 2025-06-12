@@ -6,20 +6,41 @@ const path = require("path");
 const { SmartschoolClient } = require("../dist/mod.js");
 const endpoints = require("../src/endpoints.json");
 
+// Interface for parsed arguments
+interface ParsedArgs {
+  _: string[];
+  [key: string]: any;
+  method?: string;
+  config?: string;
+  interactive?: boolean;
+  help?: boolean;
+  h?: boolean;
+  skip?: boolean;
+}
+
+// Interface for parameter config
+interface ParamConfig {
+  type?: string;
+  required?: boolean;
+  default?: any;
+  options?: string[];
+}
+
 // Parse command line arguments (Node.js equivalent of Deno's parse)
-function parseArgs(args) {
-  const parsed = {
+function parseArgs(args: string[]): ParsedArgs {
+  const parsed: ParsedArgs = {
     _: [],
-    string: {},
-    boolean: {},
-    alias: {},
+    interactive: false,
   };
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg.startsWith("--")) {
-      const [key, value] = arg.slice(2).split("=");
+      const parts = arg.slice(2).split("=");
+      const key = parts[0];
+      const value = parts.length > 1 ? parts[1] : undefined;
+
       if (value !== undefined) {
         // Handle --key=value
         parsed[key] = value;
@@ -49,11 +70,6 @@ function parseArgs(args) {
     }
   }
 
-  // Set defaults
-  if (parsed.interactive === undefined) {
-    parsed.interactive = false;
-  }
-
   return parsed;
 }
 
@@ -70,7 +86,7 @@ async function selectMethod() {
   return method;
 }
 
-async function getMethodParams(method, args, config) {
+async function getMethodParams(method: string, args: ParsedArgs, config: any) {
   const params = endpoints[method];
   if (!params) {
     throw new Error(`Unknown method: ${method}`);
@@ -81,7 +97,7 @@ async function getMethodParams(method, args, config) {
     ...args,
   };
 
-  const types = {
+  const types: Record<string, string> = {
     boolean: "confirm",
     list: "list",
     default: "input",
@@ -91,28 +107,36 @@ async function getMethodParams(method, args, config) {
   // Close in interactive mode once request is responded
   const questions = Object.entries(params)
     .filter(([key, paramConfig]) => {
+      const typedParamConfig = paramConfig as ParamConfig;
       // Only skip if value was explicitly provided via CLI
       return (
         combinedParams[key] === undefined &&
-        paramConfig.required &&
-        !(args.skip && !paramConfig.required)
+        typedParamConfig.required &&
+        !(args.skip && !typedParamConfig.required)
       );
     })
     .map(([key, paramConfig]) => {
-      const messages = {
+      const typedParamConfig = paramConfig as ParamConfig;
+      const messages: Record<string, string> = {
         boolean: `Enable ${key}`,
         list: `Choose ${key}`,
         default: `Enter ${key}`,
       };
 
-      const object = {
-        type: types[paramConfig.type] ?? messages.default,
+      const object: any = {
+        type:
+          typedParamConfig.type && typedParamConfig.type in types
+            ? types[typedParamConfig.type]
+            : types.default,
         name: key,
-        message: messages[paramConfig.type] ?? messages.default,
-        default: combinedParams[key] ?? paramConfig.default,
-        validate: (input) => {
+        message:
+          typedParamConfig.type && typedParamConfig.type in messages
+            ? messages[typedParamConfig.type]
+            : messages.default,
+        default: combinedParams[key] ?? typedParamConfig.default,
+        validate: (input: any) => {
           if (
-            paramConfig.required &&
+            typedParamConfig.required &&
             (input === undefined || input === null || input === "")
           ) {
             return `${key} is required`;
@@ -121,8 +145,8 @@ async function getMethodParams(method, args, config) {
         },
       };
 
-      if (paramConfig.type === "list") {
-        object.choices = paramConfig.options;
+      if (typedParamConfig.type === "list") {
+        object.choices = typedParamConfig.options;
       }
 
       return object;
@@ -147,7 +171,7 @@ async function main() {
     console.log(`
 Smartschool CLI
 Usage:
-  smartschool-cli --method=<method> --config=<config.json> [--interactive] [params...]
+  smartschool --method=<method> --config=<config.json> [--interactive] [params...]
 Options:
   --method        API method to call (optional, will show selection menu if not provided)
   --config        Path to config file (contains apiEndpoint and accessCode)
@@ -161,16 +185,16 @@ Parameters can be provided either as command line arguments or interactively:
   etc.
 Examples:
   # Interactive mode with method selection
-  smartschool-cli --config=./config.json
+  smartschool --config=./config.json
   # Specify method via command line
-  smartschool-cli --method=saveUser --config=./config.json --username=john.doe
+  smartschool --method=saveUser --config=./config.json --username=john.doe
   # Force interactive mode
-  smartschool-cli --method=saveUser --config=./config.json --interactive
+  smartschool --method=saveUser --config=./config.json --interactive
 `);
     process.exit(0);
   }
 
-  let method = args.method;
+  let method = args.method as any;
   if (!method || args.interactive) {
     method = await selectMethod();
   } else if (!endpoints[method]) {
@@ -186,11 +210,11 @@ Examples:
         type: "input",
         name: "configPath",
         message: "Enter path to config file:",
-        validate: async (input) => {
+        validate: async (input: string) => {
           try {
             await fs.readFile(input, "utf8");
             return true;
-          } catch (error) {
+          } catch (error: any) {
             return `Error reading config file: ${error.message}`;
           }
         },
@@ -200,7 +224,7 @@ Examples:
   } else {
     try {
       config = JSON.parse(await fs.readFile(args.config, "utf8"));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error reading config file:", error.message);
       process.exit(1);
     }
@@ -211,7 +235,7 @@ Examples:
     const params = await getMethodParams(method, args, config);
     const result = await client[method](params);
     console.log(JSON.stringify(result, null, 2));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error:", error.message);
     process.exit(1);
   }
@@ -219,7 +243,7 @@ Examples:
 
 // Only run if this file is executed directly
 if (require.main === module) {
-  main().catch((error) => {
+  main().catch((error: any) => {
     console.error("Error:", error.message);
     process.exit(1);
   });

@@ -6,12 +6,10 @@
     "strict": true,
     "esModuleInterop": true,
     "declaration": true,
-    "moduleResolution": "nodenext", // This is important
-    "allowImportingTsExtensions": true,
-    "emitDeclarationOnly": true
+    "moduleResolution": "nodenext"
   },
   "include": [
-    "src/**/*.ts"
+    "build-temp/**/*.ts"
   ],
   "exclude": [
     "node_modules",

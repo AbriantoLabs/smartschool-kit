@@ -1,35 +1,49 @@
-const fs = require("fs");
-const path = require("path");
+import { readdir, readFile, writeFile, mkdir, rm } from "fs/promises";
+import { join } from "path";
 
-// Function to recursively process all JS files in the dist directory
-function processDirectory(directory) {
-  const files = fs.readdirSync(directory);
+async function prepareNodeBuild() {
+  // Clean and create temp directory
+  try {
+    await rm("build-temp", { recursive: true });
+  } catch {}
+  await mkdir("build-temp", { recursive: true });
+
+  // Copy and transform source files
+  await copyAndTransform("src", "build-temp");
+}
+
+async function copyAndTransform(src, dest) {
+  const files = await readdir(src, { withFileTypes: true });
 
   for (const file of files) {
-    const fullPath = path.join(directory, file);
-    const stat = fs.statSync(fullPath);
+    const srcPath = join(src, file.name);
+    const destPath = join(dest, file.name);
 
-    if (stat.isDirectory()) {
-      processDirectory(fullPath);
-    } else if (file.endsWith(".js")) {
-      fixImportsInFile(fullPath);
+    if (file.isDirectory()) {
+      await mkdir(destPath, { recursive: true });
+      await copyAndTransform(srcPath, destPath);
+    } else if (file.name.endsWith(".ts")) {
+      const content = await readFile(srcPath, "utf-8");
+      // Transform .ts imports to .js
+      const transformed = content
+        .replace(/from\s+["']([^"']+)\.ts["']/g, 'from "$1.js"')
+        .replace(/import\s+["']([^"']+)\.ts["']/g, 'import "$1.js"');
+
+      await writeFile(destPath, transformed);
+      console.log(`Transformed ${srcPath} -> ${destPath}`);
+    } else {
+      // Copy non-TS files as-is
+      const content = await readFile(srcPath);
+      await writeFile(destPath, content);
     }
   }
 }
 
-// Function to fix imports in a single file
-function fixImportsInFile(filePath) {
-  let content = fs.readFileSync(filePath, "utf8");
-
-  // Replace .ts extensions in require statements
-  content = content.replace(/require\(['"](.+?)\.ts['"]\)/g, 'require("$1")');
-
-  // Replace .ts extensions in import statements (if you use ES modules)
-  content = content.replace(/from ['"](.+?)\.ts['"]/g, 'from "$1"');
-
-  fs.writeFileSync(filePath, content, "utf8");
+async function cleanup() {
+  try {
+    await rm("build-temp", { recursive: true });
+    console.log("Cleaned up build-temp directory");
+  } catch {}
 }
 
-// Start processing from the dist directory
-processDirectory("./dist");
-console.log("Fixed imports in all compiled files");
+prepareNodeBuild().catch(console.error);
