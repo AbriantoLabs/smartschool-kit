@@ -12,6 +12,16 @@ A modern, TypeScript-based, non-opinionated client for the Smartschool's APIs. T
 
 ## Installation
 
+### From NPM:
+
+```bash
+npm i @abrianto/smartschool-kit
+
+import { SmartschoolClient } from '@abrianto/smartschool-kit'
+```
+
+### From JSR.io
+
 ```bash
 # From JSR
 jsr add @abrianto/smartschool-client
@@ -56,6 +66,14 @@ const userDetails = await client.getUserDetails({
 ```
 
 ### Using the CLI
+
+### NPM:
+
+```bash
+npm i -g @abrianto/smartschool-kit
+```
+
+### Using the repository and Deno
 
 ```bash
 # Get help

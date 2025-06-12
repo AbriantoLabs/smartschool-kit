@@ -2,6 +2,9 @@
   "name": "@abrianto/smartschool-kit",
   "version": "0.0.11",
   "description": "A toolkit for Smartschool API interactions, both as a library and CLI. ",
+  "bin": {
+    "smartschool": "./bin/cli.ts"
+  },
   "main": "./dist/mod.js",
   "exports": {
     ".": {
@@ -38,6 +41,7 @@
   ],
   "homepage": "https://github.com/AbriantoLabs/smartschool-kit#readme",
   "devDependencies": {
+    "@types/node": "^22.15.30",
     "typescript": "^5.8.3"
   }
 }

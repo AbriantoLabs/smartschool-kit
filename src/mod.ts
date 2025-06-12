@@ -781,20 +781,28 @@ export class SmartschoolClient {
   /**
    * Get a list of class teachers. Returns a JSON object.
    *
-   * @param data GetClassTeachers
-   * @returns Promise<GetClassTeachers> containing the class teachers
+   * @param data - GetClassTeachers configuration object
+   * @param data.getAllOwners - Whether to retrieve all class teachers (true) or only the primary teacher (false, default).
+   *                            In Dutch: "Hiermee is het mogelijk om alle klastitularissen op te vragen (if true) en niet enkel de eerste (default false)."
+   *
+   * @returns Promise<GetClassTeachers> containing the class teachers with detailed information including:
+   *          - Teacher personal info (name, username, internal numbers)
+   *          - Class details (name, description, administrative info)
+   *          - Official status and administrative group assignments
+   *
    * @throws SmartschoolError if the API returns an error
    *
-   * @example Example
+   * @example Get all class teachers (including co-teachers)
    * ```typescript
-   * // Get all class teachers
    * const response = await client.getClassTeachers({
-   *   getAllOwners: true
+   *   getAllOwners: true // Retrieve all assigned titular teachers per class
    * });
+   * ```
    *
-   * // Get only first class teacher
+   * @example Get only primary class teachers
+   * ```typescript
    * const response = await client.getClassTeachers({
-   *   getAllOwners: false
+   *   getAllOwners: false // Only the main/first teacher per class
    * });
    * ```
    */

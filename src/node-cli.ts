@@ -1,9 +1,61 @@
-#!/usr/bin/env -S deno run
+#!/usr/bin/env node
 
-import inquirer from "npm:inquirer";
-import { parse } from "https://deno.land/std/flags/mod.ts";
-import { SmartschoolClient } from "../src/mod.ts";
-import endpoints from "../src/endpoints.json" with { type: "json" };
+const inquirer = require("inquirer");
+const fs = require("fs").promises;
+const path = require("path");
+const { SmartschoolClient } = require("../dist/mod.js");
+const endpoints = require("../src/endpoints.json");
+
+// Parse command line arguments (Node.js equivalent of Deno's parse)
+function parseArgs(args) {
+  const parsed = {
+    _: [],
+    string: {},
+    boolean: {},
+    alias: {},
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg.startsWith("--")) {
+      const [key, value] = arg.slice(2).split("=");
+      if (value !== undefined) {
+        // Handle --key=value
+        parsed[key] = value;
+      } else if (key === "help" || key === "interactive" || key === "skip") {
+        // Boolean flags
+        parsed[key] = true;
+      } else {
+        // Look ahead for value
+        if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+          parsed[key] = args[i + 1];
+          i++; // Skip next arg
+        } else {
+          parsed[key] = true;
+        }
+      }
+    } else if (arg.startsWith("-")) {
+      const key = arg.slice(1);
+      if (key === "h") {
+        parsed.help = true;
+      } else if (key === "i") {
+        parsed.interactive = true;
+      } else {
+        parsed[key] = true;
+      }
+    } else {
+      parsed._.push(arg);
+    }
+  }
+
+  // Set defaults
+  if (parsed.interactive === undefined) {
+    parsed.interactive = false;
+  }
+
+  return parsed;
+}
 
 async function selectMethod() {
   const methods = Object.keys(endpoints);
@@ -77,6 +129,7 @@ async function getMethodParams(method, args, config) {
     });
 
   const answers = await inquirer.prompt(questions);
+
   return {
     ...Object.fromEntries(
       Object.entries(combinedParams).filter(
@@ -88,12 +141,7 @@ async function getMethodParams(method, args, config) {
 }
 
 async function main() {
-  const args = parse(Deno.args, {
-    string: ["method", "config"],
-    boolean: ["help", "interactive"],
-    alias: { h: "help", i: "interactive" },
-    default: { interactive: false },
-  });
+  const args = parseArgs(process.argv.slice(2));
 
   if (args.help || args.h) {
     console.log(`
@@ -119,7 +167,7 @@ Examples:
   # Force interactive mode
   smartschool-cli --method=saveUser --config=./config.json --interactive
 `);
-    Deno.exit(0);
+    process.exit(0);
   }
 
   let method = args.method;
@@ -128,7 +176,7 @@ Examples:
   } else if (!endpoints[method]) {
     console.error("Invalid method");
     console.log("Available methods:", Object.keys(endpoints).join(", "));
-    Deno.exit(1);
+    process.exit(1);
   }
 
   let config;
@@ -140,7 +188,7 @@ Examples:
         message: "Enter path to config file:",
         validate: async (input) => {
           try {
-            await Deno.readTextFile(input);
+            await fs.readFile(input, "utf8");
             return true;
           } catch (error) {
             return `Error reading config file: ${error.message}`;
@@ -148,13 +196,13 @@ Examples:
         },
       },
     ]);
-    config = JSON.parse(await Deno.readTextFile(configPath));
+    config = JSON.parse(await fs.readFile(configPath, "utf8"));
   } else {
     try {
-      config = JSON.parse(await Deno.readTextFile(args.config));
+      config = JSON.parse(await fs.readFile(args.config, "utf8"));
     } catch (error) {
       console.error("Error reading config file:", error.message);
-      Deno.exit(1);
+      process.exit(1);
     }
   }
 
@@ -164,12 +212,17 @@ Examples:
     const result = await client[method](params);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
-    throw error;
     console.error("Error:", error.message);
-    Deno.exit(1);
+    process.exit(1);
   }
 }
 
-if (import.meta.main) {
-  main();
+// Only run if this file is executed directly
+if (require.main === module) {
+  main().catch((error) => {
+    console.error("Error:", error.message);
+    process.exit(1);
+  });
 }
+
+module.exports = { main };
