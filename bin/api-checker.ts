@@ -18,8 +18,7 @@ export class APIChecker {
    */
   checkMethod(methodName: string) {
     const isInEndpoints = methodName in this.endpoints;
-    const isInClient =
-      methodName in this.client &&
+    const isInClient = methodName in this.client &&
       typeof this.client[methodName] === "function";
 
     return {

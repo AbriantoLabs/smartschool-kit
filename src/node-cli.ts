@@ -1,22 +1,19 @@
 #!/usr/bin/env node
 
-const inquirer = require("inquirer");
+/**
+ * Node.js CLI entry point for the Smartschool toolkit.
+ *
+ * Heavy dependencies (the prompt library and the compiled client) are
+ * loaded lazily so that non-interactive usage never pays for them.
+ */
+
 const fs = require("fs").promises;
 const path = require("path");
-const { SmartschoolClient } = require("../dist/mod.js");
 const endpoints = require("../src/endpoints.json");
 
-// Interface for parsed arguments
-interface ParsedArgs {
-  _: string[];
-  [key: string]: any;
-  method?: string;
-  config?: string;
-  interactive?: boolean;
-  help?: boolean;
-  h?: boolean;
-  skip?: boolean;
-}
+import { parseArgs } from "./cli-args.ts";
+import type { ParsedArgs } from "./cli-args.ts";
+import process from "node:process";
 
 // Interface for parameter config
 interface ParamConfig {
@@ -26,54 +23,22 @@ interface ParamConfig {
   options?: string[];
 }
 
-// Parse command line arguments (Node.js equivalent of Deno's parse)
-function parseArgs(args: string[]): ParsedArgs {
-  const parsed: ParsedArgs = {
-    _: [],
-    interactive: false,
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg.startsWith("--")) {
-      const parts = arg.slice(2).split("=");
-      const key = parts[0];
-      const value = parts.length > 1 ? parts[1] : undefined;
-
-      if (value !== undefined) {
-        // Handle --key=value
-        parsed[key] = value;
-      } else if (key === "help" || key === "interactive" || key === "skip") {
-        // Boolean flags
-        parsed[key] = true;
-      } else {
-        // Look ahead for value
-        if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
-          parsed[key] = args[i + 1];
-          i++; // Skip next arg
-        } else {
-          parsed[key] = true;
-        }
-      }
-    } else if (arg.startsWith("-")) {
-      const key = arg.slice(1);
-      if (key === "h") {
-        parsed.help = true;
-      } else if (key === "i") {
-        parsed.interactive = true;
-      } else {
-        parsed[key] = true;
-      }
-    } else {
-      parsed._.push(arg);
-    }
+/** Prompt library, loaded lazily on first interactive prompt. */
+let inquirerModule: any;
+function loadInquirer(): any {
+  if (!inquirerModule) {
+    inquirerModule = require("inquirer");
   }
+  return inquirerModule;
+}
 
-  return parsed;
+/** Compiled client, loaded lazily so importing this module stays cheap. */
+function loadClient(): any {
+  return require("../dist/mod.js");
 }
 
 async function selectMethod() {
+  const inquirer = loadInquirer();
   const methods = Object.keys(endpoints);
   const { method } = await inquirer.prompt([
     {
@@ -124,15 +89,13 @@ async function getMethodParams(method: string, args: ParsedArgs, config: any) {
       };
 
       const object: any = {
-        type:
-          typedParamConfig.type && typedParamConfig.type in types
-            ? types[typedParamConfig.type]
-            : types.default,
+        type: typedParamConfig.type && typedParamConfig.type in types
+          ? types[typedParamConfig.type]
+          : types.default,
         name: key,
-        message:
-          typedParamConfig.type && typedParamConfig.type in messages
-            ? messages[typedParamConfig.type]
-            : messages.default,
+        message: typedParamConfig.type && typedParamConfig.type in messages
+          ? messages[typedParamConfig.type]
+          : messages.default,
         default: combinedParams[key] ?? typedParamConfig.default,
         validate: (input: any) => {
           if (
@@ -152,6 +115,7 @@ async function getMethodParams(method: string, args: ParsedArgs, config: any) {
       return object;
     });
 
+  const inquirer = loadInquirer();
   const answers = await inquirer.prompt(questions);
 
   return {
@@ -205,6 +169,7 @@ Examples:
 
   let config;
   if (!args.config) {
+    const inquirer = loadInquirer();
     const { configPath } = await inquirer.prompt([
       {
         type: "input",
@@ -231,6 +196,7 @@ Examples:
   }
 
   try {
+    const { SmartschoolClient } = loadClient();
     const client = new SmartschoolClient(config);
     const params = await getMethodParams(method, args, config);
     const result = await client[method](params);

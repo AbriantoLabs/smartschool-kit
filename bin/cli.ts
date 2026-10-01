@@ -1,11 +1,29 @@
 #!/usr/bin/env -S deno run
 
-import inquirer from "npm:inquirer";
 import { parse } from "https://deno.land/std/flags/mod.ts";
-import { SmartschoolClient } from "../src/mod.ts";
-import endpoints from "../src/endpoints.json" with { type: "json" };
+import { SmartschoolClient, SmartschoolConfig } from "../src/mod.ts";
+import endpointsJson from "../src/endpoints.json" with { type: "json" };
 
-async function selectMethod() {
+/** Per-endpoint parameter metadata from endpoints.json. */
+interface ParamConfig {
+  type?: string;
+  required?: boolean;
+  default?: unknown;
+  options?: string[];
+}
+
+type Endpoints = Record<string, Record<string, ParamConfig>>;
+
+const endpoints = endpointsJson as Endpoints;
+
+/** Prompt library, loaded lazily so --help and scripted usage never load it. */
+async function loadInquirer(): Promise<any> {
+  const { default: inquirer } = await import("npm:inquirer");
+  return inquirer;
+}
+
+async function selectMethod(): Promise<string> {
+  const inquirer = await loadInquirer();
   const methods = Object.keys(endpoints);
   const { method } = await inquirer.prompt([
     {
@@ -15,21 +33,25 @@ async function selectMethod() {
       choices: methods,
     },
   ]);
-  return method;
+  return method as string;
 }
 
-async function getMethodParams(method, args, config) {
+async function getMethodParams(
+  method: string,
+  args: Record<string, unknown>,
+  config: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const params = endpoints[method];
   if (!params) {
     throw new Error(`Unknown method: ${method}`);
   }
 
-  const combinedParams = {
+  const combinedParams: Record<string, unknown> = {
     ...config,
     ...args,
   };
 
-  const types = {
+  const types: Record<string, string> = {
     boolean: "confirm",
     list: "list",
     default: "input",
@@ -47,18 +69,18 @@ async function getMethodParams(method, args, config) {
       );
     })
     .map(([key, paramConfig]) => {
-      const messages = {
+      const messages: Record<string, string> = {
         boolean: `Enable ${key}`,
         list: `Choose ${key}`,
         default: `Enter ${key}`,
       };
 
-      const object = {
-        type: types[paramConfig.type] ?? messages.default,
+      const question: Record<string, unknown> = {
+        type: types[paramConfig.type ?? "default"] ?? types.default,
         name: key,
-        message: messages[paramConfig.type] ?? messages.default,
+        message: messages[paramConfig.type ?? "default"] ?? messages.default,
         default: combinedParams[key] ?? paramConfig.default,
-        validate: (input) => {
+        validate: (input: unknown) => {
           if (
             paramConfig.required &&
             (input === undefined || input === null || input === "")
@@ -70,24 +92,24 @@ async function getMethodParams(method, args, config) {
       };
 
       if (paramConfig.type === "list") {
-        object.choices = paramConfig.options;
+        question.choices = paramConfig.options;
       }
 
-      return object;
+      return question;
     });
 
-  const answers = await inquirer.prompt(questions);
+  const answers = await (await loadInquirer()).prompt(questions);
   return {
     ...Object.fromEntries(
       Object.entries(combinedParams).filter(
         ([key]) => params[key] !== undefined,
       ),
     ),
-    ...answers,
+    ...(answers as Record<string, unknown>),
   };
 }
 
-async function main() {
+async function main(): Promise<void> {
   const args = parse(Deno.args, {
     string: ["method", "config"],
     boolean: ["help", "interactive"],
@@ -122,7 +144,7 @@ Examples:
     Deno.exit(0);
   }
 
-  let method = args.method;
+  let method: string | undefined = args.method as string | undefined;
   if (!method || args.interactive) {
     method = await selectMethod();
   } else if (!endpoints[method]) {
@@ -131,41 +153,53 @@ Examples:
     Deno.exit(1);
   }
 
-  let config;
+  let config: SmartschoolConfig;
   if (!args.config) {
+    const inquirer = await loadInquirer();
     const { configPath } = await inquirer.prompt([
       {
         type: "input",
         name: "configPath",
         message: "Enter path to config file:",
-        validate: async (input) => {
+        validate: async (input: string) => {
           try {
             await Deno.readTextFile(input);
             return true;
           } catch (error) {
-            return `Error reading config file: ${error.message}`;
+            return `Error reading config file: ${
+              error instanceof Error ? error.message : String(error)
+            }`;
           }
         },
       },
     ]);
-    config = JSON.parse(await Deno.readTextFile(configPath));
+    config = JSON.parse(await Deno.readTextFile(configPath as string));
   } else {
     try {
-      config = JSON.parse(await Deno.readTextFile(args.config));
+      config = JSON.parse(await Deno.readTextFile(args.config as string));
     } catch (error) {
-      console.error("Error reading config file:", error.message);
+      console.error(
+        "Error reading config file:",
+        error instanceof Error ? error.message : error,
+      );
       Deno.exit(1);
     }
   }
 
   try {
     const client = new SmartschoolClient(config);
-    const params = await getMethodParams(method, args, config);
-    const result = await client[method](params);
+    const params = await getMethodParams(
+      method as string,
+      args as Record<string, unknown>,
+      config as unknown as Record<string, unknown>,
+    );
+    const result = await (client as unknown as Record<
+      string,
+      (p: Record<string, unknown>) => Promise<unknown>
+    >)[method as string](params);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
-    throw error;
-    console.error("Error:", error.message);
+    console.error("Error:", error instanceof Error ? error.message : error);
     Deno.exit(1);
   }
 }

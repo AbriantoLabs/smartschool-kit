@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile, mkdir, rm } from "fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "fs/promises";
 import { join } from "path";
 
 async function prepareNodeBuild() {

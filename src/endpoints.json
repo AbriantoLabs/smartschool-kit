@@ -266,7 +266,11 @@
     "fax": { "type": "string", "required": false },
     "prn": { "type": "string", "required": false },
     "stamboeknummer": { "type": "string", "required": false },
-    "basisrol": { "type": "list", "required": true, "options": ["andere", "leerling",  "leerkracht"] },
+    "basisrol": {
+      "type": "list",
+      "required": true,
+      "options": ["andere", "leerling", "leerkracht"]
+    },
     "untis": { "type": "string", "required": false }
   },
   "saveUserParameter": {

@@ -15,10 +15,10 @@
 
   ```bash
   # From JSR
-  jsr add @abrianto/smartschool-client
+  jsr add @abrianto/smartschool-kit
 
   # Direct import
-  import { SmartschoolClient } from "jsr:@abrianto/smartschool-client";
+  import { SmartschoolClient } from "jsr:@abrianto/smartschool-kit";
   ```
 
   ## Usage
@@ -26,7 +26,7 @@
   ### As a Library
 
   ```typescript
-  import { SmartschoolClient } from "@abrianto/smartschool-client";
+  import { SmartschoolClient } from "@abrianto/smartschool-kit";
 
   const client = new SmartschoolClient({
     apiEndpoint: "https://your-school.smartschool.be/Webservices/V3",
@@ -194,7 +194,7 @@
     username: string;
     name: string;
     surname: string;
-    basisrol: string;
+    basisrol: SmartschoolRole; // 'leerkracht' | 'leerling' | 'directie' | 'andere'
     email?: string;
     // ... other optional fields
   }
@@ -249,76 +249,234 @@
   MIT License - see LICENSE file for details
 * @module
 */
-import { generateXML, parseXMLResponse } from "./xml.ts";
+import { decodeHtmlEntities, generateXML, parseXMLResponse } from "./xml.ts";
+import { SmartschoolRole } from "./types.ts";
 import type {
-  SmartschoolConfig,
-  SetAccountStatus,
+  AddCourseStudents,
+  AddCourseTeacher,
+  AddHelpdeskTicket,
+  ChangeGroupOwners,
+  ChangeInternNumber,
+  ChangePasswordAtNextLogin,
+  ChangeUsername,
+  CheckStatus,
+  ClearGroup,
   CourseBase,
-  SaveUser,
-  SendMsg,
-  GetAllAccounts,
+  DeactivateTwoFactorAuthentication,
+  DelClass,
+  DelUser,
+  ForcePasswordReset,
   GetAbsents,
   GetAbsentsByDate,
   GetAbsentsByDateAndGroup,
-  UserDetails,
+  GetAbsentsByDateResponse,
+  GetAbsentsResponse,
+  GetAbsentsWithAlias,
+  GetAbsentsWithAliasByDate,
+  GetAbsentsWithAliasByDateResponse,
+  GetAbsentsWithAliasResponse,
+  GetAbsentsWithInternalNumberByDate,
+  GetAbsentsWithInternalNumberByDateResponse,
+  GetAbsentsWithUsernameByDate,
+  GetAccountPhoto,
+  GetAllAccounts,
+  GetAllAccountsExtended,
+  GetClassListJsonResponse,
+  GetClassTeachers,
+  GetHelpdeskMiniDbItems,
+  GetHelpdeskMiniDbItemsResponse,
+  GetSchoolyearDataOfClass,
+  GetSchoolyearDataOfClassResponse,
+  GetStudentCareer,
+  GetStudentCareerResponse,
   GetUserDetailsByNumber,
   GetUserDetailsByScannableCode,
   GetUserDetailsByUsername,
   GetUserOfficialClass,
-  GetClassTeachers,
-  GetSchoolyearDataOfClass,
-  DelClass,
-  SaveClass,
-  DeactivateTwoFactorAuthentication,
-  ForcePasswordReset,
-  GetAbsentsWithAlias,
-  GetAbsentsWithAliasByDate,
-  GetAbsentsWithInternalNumberByDate,
-  GetAbsentsWithUsernameByDate,
-  GetAccountPhoto,
-  GetAllAccountsExtended,
-  GetStudentCareer,
   RemoveCoAccount,
   RemoveUserFromGroup,
   ReplaceInum,
-  SavePassword,
-  SaveUserToClass,
+  ReturnJsonErrorCodesResponse,
+  SaveClass,
   SaveClassList,
   SaveClassListJson,
   SaveGroup,
+  SavePassword,
   SaveSchoolyearDataOfClass,
   SaveSignature,
+  SaveUser,
   SaveUserParameter,
+  SaveUserToClass,
   SaveUserToClasses,
   SaveUserToClassesAndGroups,
+  SendMsg,
   SetAccountPhoto,
-  UnregisterStudent,
-  ChangeUsername,
-  CheckStatus,
-  ChangeGroupOwners,
-  ClearGroup,
-  ChangeInternNumber,
-  ChangePasswordAtNextLogin,
-  DelUser,
-  AddHelpdeskTicket,
+  SetAccountStatus,
+  SmartschoolConfig,
   SmartschoolParams,
+  UnregisterStudent,
+  UserDetails,
   UserDetailsResponse,
-  AddCourseStudents,
-  AddCourseTeacher,
-  GetAbsentsResponse,
-  GetAbsentsWithInternalNumberByDateResponse,
-  ReturnJsonErrorCodesResponse,
-  GetAbsentsByDateResponse,
-  GetAbsentsWithAliasByDateResponse,
-  GetSchoolyearDataOfClassResponse,
-  GetStudentCareerResponse,
-  GetAbsentsWithAliasResponse,
-  GetHelpdeskMiniDbItems,
-  GetHelpdeskMiniDbItemsResponse,
-  GetClassListJsonResponse,
 } from "./types.ts";
 
 export * from "./types.ts";
+
+/** Default per-attempt timeout in milliseconds. */
+const DEFAULT_TIMEOUT_MS = 30000;
+
+/** Default number of retries (off: most API calls are not idempotent). */
+const DEFAULT_MAX_RETRIES = 0;
+
+/** Default base delay in milliseconds for exponential backoff. */
+const DEFAULT_RETRY_DELAY_MS = 300;
+
+/** HTTP statuses safe to retry: rate limiting and transient gateway failures. */
+const RETRYABLE_HTTP_STATUSES = new Set([429, 502, 503, 504]);
+
+/** Options controlling a single API request. @internal */
+interface RequestOptions {
+  /** Include the configured accesscode in the request (default true). */
+  needsAuth?: boolean;
+  /** Skip waiting for the error-code table (used by the bootstrap call itself). */
+  skipInit?: boolean;
+}
+
+/** Resolves after `ms` milliseconds. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Smartschool numeric error codes grouped by meaning. Smartschool sometimes
+ * has several codes for the same situation (e.g. `"9"`, `"12"` and `"25"` all
+ * mean "user does not exist"); each reason lists all of them. This is the
+ * single source for {@link SmartschoolErrorCode} and the code -> reason lookup.
+ */
+export const SMARTSCHOOL_ERROR_CODE_TABLE = {
+  NAME_TOO_SHORT: ["1"],
+  FIRST_NAME_TOO_SHORT: ["2"],
+  USERNAME_TOO_SHORT: ["3"],
+  PASSWORD_TOO_WEAK: ["4"],
+  NO_GROUP_SELECTED: ["5"],
+  USERNAME_EXISTS: ["6", "15", "26"],
+  PASSWORDS_NOT_IDENTICAL: ["7"],
+  INVALID_ACCESS_CODE: ["8"],
+  USER_NOT_FOUND: ["9", "12", "25"],
+  PROCESSING_FAILED: ["10"],
+  CLASS_SAVE_FAILED: ["11"],
+  CLASS_MOVE_FAILED: ["13"],
+  INSUFFICIENT_DATA: ["14"],
+  INTERNAL_NUMBER_EXISTS: ["16", "24", "48"],
+  PROFILE_FIELDS_SAVE_FAILED: ["17"],
+  MESSAGE_SEND_FAILED: ["18"],
+  PARENT_ID_NOT_FOUND: ["19"],
+  COURSE_ADD_FAILED: ["20"],
+  COURSE_NAME_EXISTS: ["21"],
+  COURSE_NOT_FOUND: ["22"],
+  UNKNOWN_ERROR: ["23"],
+  INSTITUTION_NUMBER_UNKNOWN: ["27"],
+  BASE_ROLE_REQUIRED: ["28"],
+  BASE_ROLE_LOCKED: ["29"],
+  ONLY_STUDENTS_IN_OFFICIAL_CLASS: ["30"],
+  STUDENT_IN_MULTIPLE_OFFICIAL_CLASSES: ["31"],
+  STUDENT_NEEDS_OFFICIAL_CLASS: ["32"],
+  CLASS_MOVEMENT_FAILED: ["33"],
+  STUDENT_ACTIVATION_NEEDS_CLASS: ["34"],
+  INSTITUTION_NUMBER_REQUIRED: ["35"],
+  OFFICIAL_CLASS_TYPE_LOCKED: ["36"],
+  GROUP_TYPE_LOCKED_NON_STUDENT_MEMBERS: ["37"],
+  GROUP_TYPE_LOCKED_OTHER_OFFICIAL_CLASS: ["38"],
+  FORMATION_COMPONENT_NOT_SELECTED: ["39"],
+  CLASS_NAME_LOCKED: ["40"],
+  ADMIN_NUMBER_LOCKED: ["41"],
+  INSTITUTION_NUMBER_LOCKED: ["42"],
+  FORMATION_COMPONENT_LOCKED: ["43"],
+  FORMATION_COMPONENT_REQUIRED: ["44"],
+  CLASS_TYPE_LOCKED: ["45"],
+  GROUP_TYPE_REQUIRED: ["46"],
+  CLASS_CODE_EXISTS: ["47"],
+  INVALID_DATE: ["49"],
+  SKORE_NOT_ACTIVE: ["50"],
+  STUDENT_UNENROLL_FAILED: ["51"],
+  PASSWORD_NOT_ALLOWED: ["52"],
+  PARENT_GROUP_NOT_FOUND: ["53"],
+  PARENT_GROUP_IS_OFFICIAL_CLASS: ["54"],
+  OFFICIAL_CLASS_NO_SUBGROUPS: ["55"],
+  INVALID_SCHOOLYEAR_DATE: ["56"],
+  ROSTER_CODE_NOT_UNIQUE: ["57"],
+} as const;
+
+type ApiReason = keyof typeof SMARTSCHOOL_ERROR_CODE_TABLE;
+
+/**
+ * Readable names for Smartschool errors, usable with
+ * {@link SmartschoolError.is}. Includes the transport-level reasons
+ * (`SOAP_FAULT`, `TIMEOUT`, `NETWORK`, and the client-side `INVALID_ROLE`); HTTP failures use `HTTP_<status>`.
+ *
+ * @example
+ * ```typescript
+ * if (error instanceof SmartschoolError && error.is(SmartschoolErrorCode.USER_NOT_FOUND)) {
+ *   // ...
+ * }
+ * ```
+ */
+export const SmartschoolErrorCode: Readonly<
+  & { [K in ApiReason]: K }
+  & {
+    SOAP_FAULT: "SOAP_FAULT";
+    TIMEOUT: "TIMEOUT";
+    NETWORK: "NETWORK";
+    INVALID_ROLE: "INVALID_ROLE";
+  }
+> = Object.freeze(
+  {
+    ...Object.fromEntries(
+      Object.keys(SMARTSCHOOL_ERROR_CODE_TABLE).map((k) => [k, k]),
+    ) as { [K in ApiReason]: K },
+    SOAP_FAULT: "SOAP_FAULT",
+    TIMEOUT: "TIMEOUT",
+    NETWORK: "NETWORK",
+    INVALID_ROLE: "INVALID_ROLE",
+  } as const,
+);
+
+/** Union of all named reasons in {@link SmartschoolErrorCode}. */
+export type SmartschoolErrorCode =
+  (typeof SmartschoolErrorCode)[keyof typeof SmartschoolErrorCode];
+
+const REASON_BY_CODE: Readonly<Record<string, string>> = Object.freeze(
+  Object.fromEntries(
+    Object.entries(SMARTSCHOOL_ERROR_CODE_TABLE).flatMap((
+      [reason, codes],
+    ) => codes.map((code) => [code, reason])),
+  ),
+);
+
+/**
+ * Maps a raw error code (`"12"`, `"TIMEOUT"`, `"HTTP_500"`, ...) to its
+ * readable reason. Unknown numeric codes yield `undefined`.
+ */
+function reasonForCode(code: string): string | undefined {
+  if (code in REASON_BY_CODE) return REASON_BY_CODE[code];
+  if (/^(SOAP_FAULT|TIMEOUT|NETWORK|INVALID_ROLE|HTTP_\d+)$/.test(code)) {
+    return code;
+  }
+  return undefined;
+}
+
+const VALID_ROLES: readonly string[] = Object.values(SmartschoolRole);
+
+/** Throws `INVALID_ROLE` (before any request) for an unknown `basisrol`. */
+function assertValidRole(basisrol: unknown): void {
+  if (typeof basisrol !== "string" || !VALID_ROLES.includes(basisrol)) {
+    throw new SmartschoolError(
+      `Ongeldige basisrol '${
+        String(basisrol)
+      }' — gebruik leerkracht, leerling, directie of andere.`,
+      "INVALID_ROLE",
+    );
+  }
+}
 
 /**
  * Custom error class for handling Smartschool API errors with error codes.
@@ -334,11 +492,21 @@ export * from "./types.ts";
  * } catch (error) {
  *   if (error instanceof SmartschoolError) {
  *     console.error(`Smartschool Error ${error.code}: ${error.message}`);
+ *     if (error.is(SmartschoolErrorCode.USERNAME_EXISTS)) { // readable instead of "6"/"15"/"26"
+ *       // ...
+ *     }
  *   }
  * }
  * ```
  */
 export class SmartschoolError extends Error {
+  /**
+   * Readable name for {@link code} (see {@link SmartschoolErrorCode}), or
+   * `undefined` for numeric codes this library does not know. Transport
+   * failures use `SOAP_FAULT`, `TIMEOUT`, `NETWORK` or `HTTP_<status>`.
+   */
+  readonly reason: string | undefined;
+
   /**
    * Creates a new SmartschoolError instance
    *
@@ -351,6 +519,16 @@ export class SmartschoolError extends Error {
   ) {
     super(message);
     this.name = "SmartschoolError";
+    this.reason = reasonForCode(code);
+  }
+
+  /**
+   * Whether this error has the given reason.
+   *
+   * @param reason - A {@link SmartschoolErrorCode} value (or `HTTP_<status>`)
+   */
+  is(reason: string): boolean {
+    return this.reason === reason;
   }
 }
 
@@ -429,8 +607,12 @@ export class SmartschoolClient {
   /** Cache of error codes and their descriptions fetched from the API */
   private errorCodes: Record<string, string> = {};
 
-  /** Flag to track if initialization is in progress to prevent multiple concurrent calls */
-  private initializing: boolean = false;
+  /**
+   * Shared in-flight/completed initialization promise.
+   * Concurrent first requests await the same promise, so the error-code
+   * table is fetched exactly once per client instance.
+   */
+  private initPromise: Promise<void> | null = null;
 
   /**
    * Creates a new SmartschoolClient instance
@@ -446,6 +628,11 @@ export class SmartschoolClient {
    * ```
    */
   constructor(config: SmartschoolConfig) {
+    if (!config || !config.apiEndpoint || !config.accesscode) {
+      throw new TypeError(
+        "SmartschoolClient requires both an apiEndpoint and an accesscode",
+      );
+    }
     this.config = config;
   }
 
@@ -460,90 +647,195 @@ export class SmartschoolClient {
   }
 
   /**
-   * Make an HTTP request to the Smartschool API
+   * Ensures the error-code table has been fetched, sharing one promise
+   * across concurrent callers. Initialization failures are soft: the request
+   * proceeds without translated error messages.
+   *
+   * @internal
+   */
+  private ensureInitialized(): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = this.initialize().catch((e: unknown) => {
+        console.error(
+          "SmartschoolClient: failed to load error codes, proceeding without translations",
+          e,
+        );
+      });
+    }
+    return this.initPromise;
+  }
+
+  /**
+   * Make an HTTP request to the Smartschool API.
+   *
+   * Handles per-attempt timeouts (`timeoutMs`), retries with exponential
+   * backoff (`maxRetries`, `retryDelayMs`) and maps every failure onto
+   * {@link SmartschoolError}. Only network errors, timeouts and HTTP
+   * 429/502/503/504 responses are retried; plain HTTP errors, timeouts
+   * beyond the retry budget, and Smartschool API error codes fail fast,
+   * because the API calls are not idempotent.
    *
    * @internal
    * @param methodName - The API method name to call
    * @param params - Parameters to pass to the API method
    * @param opts - Additional options for the request
-   * @param opts.needsAuth - Whether to include authentication (defaults to true)
+   * @param opts.needsAuth - Whether to include the accesscode (defaults to true)
+   * @param opts.skipInit - Skip waiting for the error-code table (internal)
    * @returns Promise resolving to the parsed API response
-   * @throws {SmartschoolError} If the API returns an error code
+   * @throws {SmartschoolError} If the API returns an error code, or the
+   *         request fails at the transport/HTTP level after exhausting retries
    */
-  private async makeRequest(
+  private async makeRequest<T = unknown>(
     methodName: string,
     params: SmartschoolParams,
-    opts = { needsAuth: true },
-  ): Promise<unknown | Record<string, unknown>> {
-    if (!Object.keys(this.errorCodes).length && !this.initializing) {
-      this.initializing = true;
-      try {
-        await this.initialize();
-      } catch (e) {
-        console.error("Error initializing", e);
-      }
+    opts: RequestOptions = {},
+  ): Promise<T> {
+    if (!opts.skipInit) {
+      await this.ensureInitialized();
     }
 
-    const xmlBody = generateXML(methodName, {
-      accesscode: opts.needsAuth ? this.config.accesscode : undefined,
-      ...params,
-    });
+    const maxRetries = this.config.maxRetries ?? DEFAULT_MAX_RETRIES;
+    const retryDelayMs = this.config.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
 
-    const response = await fetch(this.config.apiEndpoint, {
+    for (let attempt = 0;; attempt++) {
+      const xmlBody = generateXML(methodName, {
+        accesscode: opts.needsAuth === false
+          ? undefined
+          : this.config.accesscode,
+        ...params,
+      });
+
+      const result = await this.attemptRequest<T>(methodName, xmlBody);
+
+      if (result.ok) {
+        return result.value;
+      }
+
+      if (!result.retryable || attempt >= maxRetries) {
+        throw result.error;
+      }
+
+      await sleep(retryDelayMs * 2 ** attempt);
+    }
+  }
+
+  /**
+   * Performs a single HTTP attempt and classifies the outcome.
+   * API-level error codes and unparsable responses throw immediately
+   * (never retried); transport failures are returned as retryable errors.
+   *
+   * @internal
+   */
+  private async attemptRequest<T>(
+    methodName: string,
+    xmlBody: string,
+  ): Promise<
+    | { ok: true; value: T }
+    | { ok: false; retryable: boolean; error: SmartschoolError }
+  > {
+    let response: Response;
+    try {
+      response = await this.fetchWithTimeout(xmlBody);
+    } catch (e) {
+      const timedOut = e instanceof Error && e.name === "AbortError";
+      const detail = e instanceof Error ? e.message : String(e);
+      return {
+        ok: false,
+        retryable: true,
+        error: new SmartschoolError(
+          `Smartschool API request "${methodName}" ${
+            timedOut
+              ? `timed out after ${
+                this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS
+              }ms`
+              : "failed with a network error"
+          }: ${detail}`,
+          timedOut ? "TIMEOUT" : "NETWORK",
+        ),
+      };
+    }
+
+    const responseText = await response.text();
+
+    // A SOAP fault (usually HTTP 500, no <return>) carries Smartschool's own
+    // message — surface it instead of a raw XML snippet. Never retried: the
+    // request itself was rejected.
+    const fault = responseText.match(
+      /<(?:[\w-]+:)?Fault\b[\s\S]*?<faultstring[^>]*>([\s\S]*?)<\/faultstring>/i,
+    );
+    if (fault) {
+      return {
+        ok: false,
+        retryable: false,
+        error: new SmartschoolError(
+          `Smartschool API request "${methodName}" was rejected: ${
+            decodeHtmlEntities(fault[1].trim())
+          }`,
+          "SOAP_FAULT",
+        ),
+      };
+    }
+
+    if (!response.ok) {
+      const bodySnippet = responseText.trim().slice(0, 200);
+      return {
+        ok: false,
+        retryable: RETRYABLE_HTTP_STATUSES.has(response.status),
+        error: new SmartschoolError(
+          `Smartschool API request "${methodName}" failed with HTTP ${response.status}` +
+            (bodySnippet ? `: ${bodySnippet}` : ""),
+          `HTTP_${response.status}`,
+        ),
+      };
+    }
+
+    const json = parseXMLResponse(responseText);
+    const code = String(json);
+
+    // If we got an error code, throw its translated message
+    const knownError = this.errorCodes[code];
+    if (knownError !== undefined) {
+      throw new SmartschoolError(decodeHtmlEntities(knownError), code);
+    }
+
+    // For simple success responses ("0"), return true
+    if (code === "0") {
+      return { ok: true, value: true as T };
+    }
+
+    return { ok: true, value: json as T };
+  }
+
+  /**
+   * Runs the fetch with an abort-based timeout (disabled when `timeoutMs`
+   * is 0 or negative).
+   *
+   * @internal
+   */
+  private async fetchWithTimeout(xmlBody: string): Promise<Response> {
+    const timeoutMs = this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const init: RequestInit = {
       method: "POST",
       headers: {
         "Content-Type": "application/xml",
       },
       body: xmlBody,
-    });
+    };
 
-    const responseText = await response.text();
-
-    // A SOAP fault has no <return>: surface Smartschool's own message instead
-    // of handing the parsed fault back as if the call succeeded.
-    const fault = responseText.match(
-      /<(?:[\w-]+:)?Fault\b[\s\S]*?<faultstring[^>]*>([\s\S]*?)<\/faultstring>/i,
-    );
-    if (fault) {
-      throw new SmartschoolError(
-        this.decodeHtmlEntities(fault[1].trim()),
-        "SOAP_FAULT",
-      );
-    }
-    if (!response.ok) {
-      throw new SmartschoolError(
-        `HTTP ${response.status} ${response.statusText}`.trim(),
-        `HTTP_${response.status}`,
-      );
+    if (!timeoutMs || timeoutMs <= 0) {
+      return await fetch(this.config.apiEndpoint, init);
     }
 
-    const json = parseXMLResponse(responseText);
-
-    // If we got an error code, throw it
-    if (this.errorCodes[json.toString()]) {
-      throw new SmartschoolError(
-        this.decodeHtmlEntities(this.errorCodes[json]),
-        json,
-      );
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(this.config.apiEndpoint, {
+        ...init,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
     }
-
-    // For simple success responses ("0"), return true
-    if (json.toString() === "0") {
-      return true;
-    }
-
-    // Otherwise return the parsed response data
-    return parseXMLResponse(json);
-  }
-
-  private decodeHtmlEntities(text: string): string {
-    return text
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'")
-      .replace(/&amp;/g, "&")
-      .replace(/<br\s*\/?>/gi, "\n");
   }
 
   /**
@@ -563,7 +855,7 @@ export class SmartschoolClient {
    * ```
    */
   addCourse(data: CourseBase): Promise<true> {
-    return this.makeRequest("addCourse", data) as Promise<true>;
+    return this.makeRequest<true>("addCourse", data);
   }
 
   /**
@@ -583,7 +875,7 @@ export class SmartschoolClient {
    * ```
    */
   addCourseStudents(data: AddCourseStudents): Promise<true> {
-    return this.makeRequest("addCourseStudents", data) as Promise<true>;
+    return this.makeRequest<true>("addCourseStudents", data);
   }
 
   /**
@@ -604,7 +896,7 @@ export class SmartschoolClient {
    * ```
    */
   addCourseTeacher(data: AddCourseTeacher): Promise<true> {
-    return this.makeRequest("addCourseTeacher", data) as Promise<true>;
+    return this.makeRequest<true>("addCourseTeacher", data);
   }
 
   /**
@@ -623,10 +915,10 @@ export class SmartschoolClient {
    * ```
    */
   getUserDetails(data: UserDetails): Promise<UserDetailsResponse> {
-    return this.makeRequest(
+    return this.makeRequest<UserDetailsResponse>(
       "getUserDetails",
       data,
-    ) as Promise<UserDetailsResponse>;
+    );
   }
 
   /**
@@ -647,10 +939,10 @@ export class SmartschoolClient {
   getUserDetailsByNumber(
     data: GetUserDetailsByNumber,
   ): Promise<UserDetailsResponse> {
-    return this.makeRequest(
+    return this.makeRequest<UserDetailsResponse>(
       "getUserDetailsByNumber",
       data,
-    ) as Promise<UserDetailsResponse>;
+    );
   }
 
   /**
@@ -671,10 +963,10 @@ export class SmartschoolClient {
   getUserDetailsByUsername(
     data: GetUserDetailsByUsername,
   ): Promise<UserDetailsResponse> {
-    return this.makeRequest(
+    return this.makeRequest<UserDetailsResponse>(
       "getUserDetailsByUsername",
       data,
-    ) as Promise<UserDetailsResponse>;
+    );
   }
 
   /**
@@ -694,10 +986,10 @@ export class SmartschoolClient {
   getUserDetailsByScannableCode(
     data: GetUserDetailsByScannableCode,
   ): Promise<UserDetailsResponse> {
-    return this.makeRequest(
+    return this.makeRequest<UserDetailsResponse>(
       "getUserDetailsByScannableCode",
       data,
-    ) as Promise<UserDetailsResponse>;
+    );
   }
 
   /**
@@ -724,10 +1016,10 @@ export class SmartschoolClient {
   getUserOfficialClass(
     data: GetUserOfficialClass,
   ): Promise<GetUserOfficialClass> {
-    return this.makeRequest(
+    return this.makeRequest<GetUserOfficialClass>(
       "getUserOfficialClass",
       data,
-    ) as Promise<GetUserOfficialClass>;
+    );
   }
 
   /**
@@ -747,7 +1039,7 @@ export class SmartschoolClient {
    * ```
    */
   saveSignature(data: SaveSignature): Promise<true> {
-    return this.makeRequest("saveSignature", data) as Promise<true>;
+    return this.makeRequest<true>("saveSignature", data);
   }
 
   /**
@@ -791,7 +1083,7 @@ export class SmartschoolClient {
    * ```
    */
   getAbsents(data: GetAbsents): Promise<GetAbsentsResponse> {
-    return this.makeRequest("getAbsents", data) as Promise<GetAbsentsResponse>;
+    return this.makeRequest<GetAbsentsResponse>("getAbsents", data);
   }
 
   /**
@@ -823,10 +1115,10 @@ export class SmartschoolClient {
    * ```
    */
   getClassTeachers(data: GetClassTeachers): Promise<GetClassTeachers> {
-    return this.makeRequest(
+    return this.makeRequest<GetClassTeachers>(
       "getClassTeachers",
       data,
-    ) as Promise<GetClassTeachers>;
+    );
   }
 
   /**
@@ -863,7 +1155,7 @@ export class SmartschoolClient {
    * ```
    */
   saveClass(data: SaveClass): Promise<true> {
-    return this.makeRequest("saveClass", data) as Promise<true>;
+    return this.makeRequest<true>("saveClass", data);
   }
 
   /**
@@ -897,7 +1189,7 @@ export class SmartschoolClient {
    * ```
    */
   saveGroup(data: SaveGroup): Promise<true> {
-    return this.makeRequest("saveGroup", data) as Promise<true>;
+    return this.makeRequest<true>("saveGroup", data);
   }
 
   /**
@@ -955,7 +1247,7 @@ export class SmartschoolClient {
    * ```
    */
   saveUserParameter(data: SaveUserParameter): Promise<true> {
-    return this.makeRequest("saveUserParameter", data) as Promise<true>;
+    return this.makeRequest<true>("saveUserParameter", data);
   }
 
   /**
@@ -1002,8 +1294,83 @@ export class SmartschoolClient {
    * @todo Non required fields are required in the CLI
    * ```
    */
-  saveUser(data: SaveUser): Promise<true> {
-    return this.makeRequest("saveUser", data) as Promise<true>;
+  async saveUser(data: SaveUser): Promise<true> {
+    assertValidRole(data.basisrol);
+    return await this.makeRequest<true>("saveUser", data);
+  }
+
+  /**
+   * Look up a user by username without throwing when they don't exist.
+   *
+   * @param username - The account username
+   * @returns The user details, or `null` when Smartschool reports the user
+   *          does not exist (reason `USER_NOT_FOUND`)
+   * @throws SmartschoolError for every other failure (auth, network, ...)
+   *
+   * @example Example
+   * ```typescript
+   * const user = await client.findUserByUsername("john.doe");
+   * if (user === null) {
+   *   // no such account
+   * }
+   * ```
+   */
+  async findUserByUsername(
+    username: string,
+  ): Promise<UserDetailsResponse | null> {
+    try {
+      return await this.getUserDetailsByUsername({ username });
+    } catch (error) {
+      if (
+        error instanceof SmartschoolError &&
+        error.is(SmartschoolErrorCode.USER_NOT_FOUND)
+      ) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Create a user, refusing to overwrite an existing account.
+   *
+   * Smartschool's `saveUser` is an upsert: it silently updates an existing
+   * account. `createUser` first checks {@link findUserByUsername} and throws
+   * a `SmartschoolError` with code `"6"` and reason `USERNAME_EXISTS` when the
+   * username is taken; otherwise it saves the user and returns the fresh
+   * details. (The check and the save are not atomic.)
+   *
+   * @param data SaveUser
+   * @returns The details of the created user
+   * @throws SmartschoolError `USERNAME_EXISTS` if the username exists, or any
+   *         API error from the underlying calls
+   *
+   * @example Example
+   * ```typescript
+   * try {
+   *   const user = await client.createUser({
+   *     username: "john.doe",
+   *     name: "John",
+   *     surname: "Doe",
+   *     basisrol: "leerkracht",
+   *   });
+   * } catch (error) {
+   *   if (error instanceof SmartschoolError && error.is(SmartschoolErrorCode.USERNAME_EXISTS)) {
+   *     // already there, nothing was changed
+   *   }
+   * }
+   * ```
+   */
+  async createUser(data: SaveUser): Promise<UserDetailsResponse> {
+    assertValidRole(data.basisrol);
+    if (await this.findUserByUsername(data.username) !== null) {
+      throw new SmartschoolError(
+        `Smartschool user "${data.username}" already exists; refusing to overwrite it.`,
+        "6",
+      );
+    }
+    await this.saveUser(data);
+    return await this.getUserDetailsByUsername({ username: data.username });
   }
 
   /**
@@ -1025,7 +1392,6 @@ export class SmartschoolClient {
    *   copyToLVS: false
    * });
    *
-   *
    * // Message with file attachments using Node.js fs
    * // Read files and convert to base64 for NodeJS
    * import { readFileSync } from 'fs';
@@ -1040,7 +1406,6 @@ export class SmartschoolClient {
    *
    * const file1 = encodeBase64(await Deno.readFile(join(Deno.cwd(), 'document.pdf')));
    * const file2 = encodeBase64(await Deno.readFile(join(Deno.cwd(), 'image.jpg')));
-   *
    *
    * const response = await client.sendMsg({
    *   userIdentifier: "john.doe",
@@ -1061,7 +1426,7 @@ export class SmartschoolClient {
    * ```
    */
   sendMsg(data: SendMsg): Promise<true> {
-    return this.makeRequest("sendMsg", data) as Promise<true>;
+    return this.makeRequest<true>("sendMsg", data);
   }
 
   /**
@@ -1102,7 +1467,7 @@ export class SmartschoolClient {
    * ```
    */
   setAccountPhoto(data: SetAccountPhoto): Promise<true> {
-    return this.makeRequest("setAccountPhoto", data) as Promise<true>;
+    return this.makeRequest<true>("setAccountPhoto", data);
   }
 
   /**
@@ -1134,7 +1499,7 @@ export class SmartschoolClient {
    * ```
    */
   setAccountStatus(data: SetAccountStatus): Promise<true> {
-    return this.makeRequest("setAccountStatus", data) as Promise<true>;
+    return this.makeRequest<true>("setAccountStatus", data);
   }
 
   /**
@@ -1151,11 +1516,11 @@ export class SmartschoolClient {
    * ```
    */
   returnCsvErrorCodes(): Promise<string> {
-    return this.makeRequest(
+    return this.makeRequest<string>(
       "returnCsvErrorCodes",
       {},
       { needsAuth: false },
-    ) as Promise<string>;
+    );
   }
 
   /**
@@ -1175,10 +1540,10 @@ export class SmartschoolClient {
   getAbsentsWithInternalNumberByDate(
     data: GetAbsentsWithInternalNumberByDate,
   ): Promise<GetAbsentsWithInternalNumberByDateResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetAbsentsWithInternalNumberByDateResponse>(
       "getAbsentsWithInternalNumberByDate",
       data,
-    ) as Promise<GetAbsentsWithInternalNumberByDateResponse>;
+    );
   }
 
   /**
@@ -1210,10 +1575,10 @@ export class SmartschoolClient {
   getAbsentsWithUsernameByDate(
     data: GetAbsentsWithUsernameByDate,
   ): Promise<GetAbsentsWithUsernameByDate> {
-    return this.makeRequest(
+    return this.makeRequest<GetAbsentsWithUsernameByDate>(
       "getAbsentsWithUsernameByDate",
       data,
-    ) as Promise<GetAbsentsWithUsernameByDate>;
+    );
   }
 
   /**
@@ -1236,11 +1601,12 @@ export class SmartschoolClient {
    * ```
    */
   returnJsonErrorCodes(): Promise<ReturnJsonErrorCodesResponse> {
-    return this.makeRequest(
+    return this.makeRequest<ReturnJsonErrorCodesResponse>(
       "returnJsonErrorCodes",
       {},
-      { needsAuth: false },
-    ) as Promise<ReturnJsonErrorCodesResponse>;
+      // This call IS the initialization: it must not wait for itself.
+      { needsAuth: false, skipInit: true },
+    );
   }
 
   /**
@@ -1259,7 +1625,7 @@ export class SmartschoolClient {
    * ```
    */
   changeUsername(data: ChangeUsername): Promise<true> {
-    return this.makeRequest("changeUsername", data) as Promise<true>;
+    return this.makeRequest<true>("changeUsername", data);
   }
 
   /**
@@ -1284,7 +1650,7 @@ export class SmartschoolClient {
    * ```
    */
   delClass(data: DelClass): Promise<true> {
-    return this.makeRequest("delClass", data) as Promise<true>;
+    return this.makeRequest<true>("delClass", data);
   }
 
   /**
@@ -1303,10 +1669,10 @@ export class SmartschoolClient {
    * ```
    */
   getAbsentsByDate(data: GetAbsentsByDate): Promise<GetAbsentsByDateResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetAbsentsByDateResponse>(
       "getAbsentsByDate",
       data,
-    ) as Promise<GetAbsentsByDateResponse>;
+    );
   }
 
   /**
@@ -1328,10 +1694,10 @@ export class SmartschoolClient {
   getAbsentsByDateAndGroup(
     data: GetAbsentsByDateAndGroup,
   ): Promise<GetAbsentsByDateResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetAbsentsByDateResponse>(
       "getAbsentsByDateAndGroup",
       data,
-    ) as Promise<GetAbsentsByDateResponse>;
+    );
   }
 
   /**
@@ -1352,10 +1718,10 @@ export class SmartschoolClient {
   getAbsentsWithAliasByDate(
     data: GetAbsentsWithAliasByDate,
   ): Promise<GetAbsentsWithAliasByDateResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetAbsentsWithAliasByDateResponse>(
       "getAbsentsWithAliasByDate",
       data,
-    ) as Promise<GetAbsentsWithAliasByDateResponse>;
+    );
   }
 
   /**
@@ -1377,7 +1743,7 @@ export class SmartschoolClient {
    * @todo Translate base64 to image
    */
   getAccountPhoto(data: GetAccountPhoto): Promise<string> {
-    return this.makeRequest("getAccountPhoto", data) as Promise<string>;
+    return this.makeRequest<string>("getAccountPhoto", data);
   }
 
   /**
@@ -1410,10 +1776,10 @@ export class SmartschoolClient {
   getSchoolyearDataOfClass(
     data: GetSchoolyearDataOfClass,
   ): Promise<GetSchoolyearDataOfClassResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetSchoolyearDataOfClassResponse>(
       "getSchoolyearDataOfClass",
       data,
-    ) as Promise<GetSchoolyearDataOfClassResponse>;
+    );
   }
 
   /**
@@ -1432,10 +1798,10 @@ export class SmartschoolClient {
    * @todo figure out response type and add proper return type annotation, my test only shows an empty object
    */
   getSkoreClassTeacherCourseRelation(): Promise<unknown> {
-    return this.makeRequest(
+    return this.makeRequest<unknown>(
       "getSkoreClassTeacherCourseRelation",
       {},
-    ) as Promise<unknown>;
+    );
   }
 
   /**
@@ -1467,10 +1833,10 @@ export class SmartschoolClient {
    * ```
    */
   getStudentCareer(data: GetStudentCareer): Promise<GetStudentCareerResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetStudentCareerResponse>(
       "getStudentCareer",
       data,
-    ) as Promise<GetStudentCareerResponse>;
+    );
   }
 
   /**
@@ -1497,7 +1863,7 @@ export class SmartschoolClient {
    * @todo Test and implement
    */
   saveClassList(data: SaveClassList): Promise<unknown> {
-    return this.makeRequest("saveClassList", data) as Promise<unknown>;
+    return this.makeRequest<unknown>("saveClassList", data);
   }
 
   /**
@@ -1536,7 +1902,7 @@ export class SmartschoolClient {
    * ```
    */
   saveClassListJson(data: SaveClassListJson): Promise<unknown> {
-    return this.makeRequest("saveClassListJson", data) as Promise<unknown>;
+    return this.makeRequest<unknown>("saveClassListJson", data);
   }
 
   /**
@@ -1572,10 +1938,10 @@ export class SmartschoolClient {
   getAbsentsWithAlias(
     data: GetAbsentsWithAlias,
   ): Promise<GetAbsentsWithAliasResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetAbsentsWithAliasResponse>(
       "getAbsentsWithAlias",
       data,
-    ) as Promise<GetAbsentsWithAliasResponse>;
+    );
   }
 
   /**
@@ -1606,7 +1972,7 @@ export class SmartschoolClient {
    * @todo Test, fix and implement
    */
   getAllAccounts(data: GetAllAccounts): Promise<unknown> {
-    return this.makeRequest("getAllAccounts", data) as Promise<unknown>;
+    return this.makeRequest<unknown>("getAllAccounts", data);
   }
 
   /**
@@ -1641,7 +2007,7 @@ export class SmartschoolClient {
    * @todo Test, fix and implement
    */
   checkStatus(data: CheckStatus): Promise<unknown> {
-    return this.makeRequest("checkStatus", data) as Promise<unknown>;
+    return this.makeRequest<unknown>("checkStatus", data);
   }
 
   /**
@@ -1661,7 +2027,7 @@ export class SmartschoolClient {
    * ```
    */
   replaceInum(data: ReplaceInum): Promise<true> {
-    return this.makeRequest("replaceInum", data) as Promise<true>;
+    return this.makeRequest<true>("replaceInum", data);
   }
 
   /**
@@ -1688,7 +2054,7 @@ export class SmartschoolClient {
    * ```
    */
   removeCoAccount(data: RemoveCoAccount): Promise<true> {
-    return this.makeRequest("removeCoAccount", data) as Promise<true>;
+    return this.makeRequest<true>("removeCoAccount", data);
   }
 
   /**
@@ -1726,7 +2092,7 @@ export class SmartschoolClient {
    * ```
    */
   savePassword(data: SavePassword): Promise<true> {
-    return this.makeRequest("savePassword", data) as Promise<true>;
+    return this.makeRequest<true>("savePassword", data);
   }
 
   /**
@@ -1753,7 +2119,7 @@ export class SmartschoolClient {
    * ```
    */
   saveUserToClass(data: SaveUserToClass): Promise<true> {
-    return this.makeRequest("saveUserToClass", data) as Promise<true>;
+    return this.makeRequest<true>("saveUserToClass", data);
   }
 
   /**
@@ -1777,7 +2143,7 @@ export class SmartschoolClient {
    * ```
    */
   saveUserToClasses(data: SaveUserToClasses): Promise<true> {
-    return this.makeRequest("saveUserToClasses", data) as Promise<true>;
+    return this.makeRequest<true>("saveUserToClasses", data);
   }
 
   /**
@@ -1809,10 +2175,10 @@ export class SmartschoolClient {
    * ```
    */
   saveUserToClassesAndGroups(data: SaveUserToClassesAndGroups): Promise<true> {
-    return this.makeRequest(
+    return this.makeRequest<true>(
       "saveUserToClassesAndGroups",
       data,
-    ) as Promise<true>;
+    );
   }
 
   /**
@@ -1839,7 +2205,7 @@ export class SmartschoolClient {
    * ```
    */
   saveSchoolyearDataOfClass(data: SaveSchoolyearDataOfClass): Promise<true> {
-    return this.makeRequest("saveSchoolyearDataOfClass", data) as Promise<true>;
+    return this.makeRequest<true>("saveSchoolyearDataOfClass", data);
   }
 
   /**
@@ -1860,7 +2226,7 @@ export class SmartschoolClient {
    * @todo Figure this out
    */
   getReferenceField(): Promise<unknown> {
-    return this.makeRequest("getReferenceField", {}) as Promise<unknown>;
+    return this.makeRequest<unknown>("getReferenceField", {});
   }
 
   /**
@@ -1893,10 +2259,10 @@ export class SmartschoolClient {
    * ```
    */
   getHelpdeskMiniDbItems(): Promise<GetHelpdeskMiniDbItemsResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetHelpdeskMiniDbItemsResponse>(
       "getHelpdeskMiniDbItems",
       {},
-    ) as Promise<GetHelpdeskMiniDbItemsResponse>;
+    );
   }
 
   /**
@@ -1917,7 +2283,7 @@ export class SmartschoolClient {
    * @todo implement
    */
   getCourses(): Promise<string> {
-    return this.makeRequest("getCourses", {}) as Promise<string>;
+    return this.makeRequest<string>("getCourses", {});
   }
 
   /**
@@ -1946,7 +2312,7 @@ export class SmartschoolClient {
    * ```
    */
   unregisterStudent(data: UnregisterStudent): Promise<true> {
-    return this.makeRequest("unregisterStudent", data) as Promise<true>;
+    return this.makeRequest<true>("unregisterStudent", data);
   }
 
   /**
@@ -1979,7 +2345,7 @@ export class SmartschoolClient {
    * ```
    */
   startSkoreSync(): Promise<unknown> {
-    return this.makeRequest("startSkoreSync", {}) as Promise<unknown>;
+    return this.makeRequest<unknown>("startSkoreSync", {});
   }
 
   /**
@@ -2017,7 +2383,7 @@ export class SmartschoolClient {
    * ```
    */
   addHelpdeskTicket(data: AddHelpdeskTicket): Promise<unknown> {
-    return this.makeRequest("addHelpdeskTicket", data) as Promise<unknown>;
+    return this.makeRequest<unknown>("addHelpdeskTicket", data);
   }
 
   /**
@@ -2044,7 +2410,7 @@ export class SmartschoolClient {
    * ```
    */
   changeGroupOwners(data: ChangeGroupOwners): Promise<true> {
-    return this.makeRequest("changeGroupOwners", data) as Promise<true>;
+    return this.makeRequest<true>("changeGroupOwners", data);
   }
 
   /**
@@ -2070,7 +2436,7 @@ export class SmartschoolClient {
    * ```
    */
   clearGroup(data: ClearGroup): Promise<true> {
-    return this.makeRequest("clearGroup", data) as Promise<true>;
+    return this.makeRequest<true>("clearGroup", data);
   }
 
   /**
@@ -2091,7 +2457,7 @@ export class SmartschoolClient {
    * @todo implement
    */
   getAllGroupsAndClasses(): Promise<unknown> {
-    return this.makeRequest("getAllGroupsAndClasses", {}) as Promise<unknown>;
+    return this.makeRequest<unknown>("getAllGroupsAndClasses", {});
   }
 
   /**
@@ -2122,7 +2488,7 @@ export class SmartschoolClient {
    * @todo implement
    */
   getClassList(): Promise<unknown> {
-    return this.makeRequest("getClassList", {}) as Promise<unknown>;
+    return this.makeRequest<unknown>("getClassList", {});
   }
 
   /**
@@ -2153,10 +2519,10 @@ export class SmartschoolClient {
    * ```
    */
   getClassListJson(): Promise<GetClassListJsonResponse> {
-    return this.makeRequest(
+    return this.makeRequest<GetClassListJsonResponse>(
       "getClassListJson",
       {},
-    ) as Promise<GetClassListJsonResponse>;
+    );
   }
 
   /**
@@ -2176,7 +2542,7 @@ export class SmartschoolClient {
    * ```
    */
   changeInternNumber(data: ChangeInternNumber): Promise<true> {
-    return this.makeRequest("changeInternNumber", data) as Promise<true>;
+    return this.makeRequest<true>("changeInternNumber", data);
   }
 
   /**
@@ -2208,7 +2574,7 @@ export class SmartschoolClient {
    * ```
    */
   changePasswordAtNextLogin(data: ChangePasswordAtNextLogin): Promise<true> {
-    return this.makeRequest("changePasswordAtNextLogin", data) as Promise<true>;
+    return this.makeRequest<true>("changePasswordAtNextLogin", data);
   }
 
   /**
@@ -2234,7 +2600,7 @@ export class SmartschoolClient {
    * ```
    */
   delUser(data: DelUser): Promise<true> {
-    return this.makeRequest("delUser", data) as Promise<true>;
+    return this.makeRequest<true>("delUser", data);
   }
 
   /**
@@ -2261,7 +2627,7 @@ export class SmartschoolClient {
    * ```
    */
   forcePasswordReset(data: ForcePasswordReset): Promise<true> {
-    return this.makeRequest("forcePasswordReset", data) as Promise<true>;
+    return this.makeRequest<true>("forcePasswordReset", data);
   }
 
   /**
@@ -2292,9 +2658,10 @@ export class SmartschoolClient {
   getAllAccountsExtended(
     data: GetAllAccountsExtended,
   ): Promise<UserDetailsResponse[]> {
-    return this.makeRequest("getAllAccountsExtended", data) as Promise<
-      UserDetailsResponse[]
-    >;
+    return this.makeRequest<UserDetailsResponse[]>(
+      "getAllAccountsExtended",
+      data,
+    );
   }
 
   /**
@@ -2325,10 +2692,10 @@ export class SmartschoolClient {
   deactivateTwoFactorAuthentication(
     data: DeactivateTwoFactorAuthentication,
   ): Promise<true> {
-    return this.makeRequest(
+    return this.makeRequest<true>(
       "deactivateTwoFactorAuthentication",
       data,
-    ) as Promise<true>;
+    );
   }
 
   /**
@@ -2356,6 +2723,6 @@ export class SmartschoolClient {
    * ```
    */
   removeUserFromGroup(data: RemoveUserFromGroup): Promise<true> {
-    return this.makeRequest("removeUserFromGroup", data) as Promise<true>;
+    return this.makeRequest<true>("removeUserFromGroup", data);
   }
 }

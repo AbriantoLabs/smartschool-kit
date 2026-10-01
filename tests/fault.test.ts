@@ -24,12 +24,19 @@ async function withFetch(
   globalThis.fetch = (async (_url: string, options: RequestInit) => {
     const xml = String(options.body);
     if (xml.includes("returnJsonErrorCodes")) {
-      return new Response(soapReturn(JSON.stringify({ "12": "Deze gebruiker bestaat niet" })));
+      return new Response(
+        soapReturn(JSON.stringify({ "12": "Deze gebruiker bestaat niet" })),
+      );
     }
     return new Response(body, { status });
   }) as typeof fetch;
   try {
-    await fn(new SmartschoolClient({ apiEndpoint: ENDPOINT, accesscode: "secret-code" }));
+    await fn(
+      new SmartschoolClient({
+        apiEndpoint: ENDPOINT,
+        accesscode: "secret-code",
+      }),
+    );
   } finally {
     globalThis.fetch = original;
   }
@@ -40,21 +47,27 @@ const user = {
   username: "john.doe",
   name: "John",
   surname: "Doe",
-  basisrol: "1",
+  basisrol: "leerling",
   passwd1: "p&ss<word>",
 } as unknown as SaveUser;
 
 Deno.test("SOAP fault is thrown as SmartschoolError with the fault message", async () => {
   await withFetch(soapFault("Invalid XML"), 500, async (client) => {
-    const error = await assertRejects(() => client.saveUser(user), SmartschoolError);
-    assertEquals(error.message, "Invalid XML");
+    const error = await assertRejects(
+      () => client.saveUser(user),
+      SmartschoolError,
+    );
+    assertEquals(error.message.endsWith("was rejected: Invalid XML"), true);
     assertEquals(error.code, "SOAP_FAULT");
   });
 });
 
 Deno.test("non-2xx response without fault is thrown as HTTP error", async () => {
   await withFetch("Bad gateway", 502, async (client) => {
-    const error = await assertRejects(() => client.saveUser(user), SmartschoolError);
+    const error = await assertRejects(
+      () => client.saveUser(user),
+      SmartschoolError,
+    );
     assertEquals(error.code, "HTTP_502");
   });
 });
@@ -80,12 +93,17 @@ Deno.test("passwords with XML special characters are escaped in the envelope", a
   const original = globalThis.fetch;
   globalThis.fetch = (async (_url: string, options: RequestInit) => {
     const xml = String(options.body);
-    if (xml.includes("returnJsonErrorCodes")) return new Response(soapReturn("{}"));
+    if (xml.includes("returnJsonErrorCodes")) {
+      return new Response(soapReturn("{}"));
+    }
     sent = xml;
     return new Response(soapReturn("0"));
   }) as typeof fetch;
   try {
-    const client = new SmartschoolClient({ apiEndpoint: ENDPOINT, accesscode: "x" });
+    const client = new SmartschoolClient({
+      apiEndpoint: ENDPOINT,
+      accesscode: "x",
+    });
     await client.saveUser(user);
   } finally {
     globalThis.fetch = original;

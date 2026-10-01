@@ -1,6 +1,7 @@
 # Smartschool API Coverage Report
 
-This document provides an overview of the API coverage status for the Smartschool client implementation.
+This document provides an overview of the API coverage status for the
+Smartschool client implementation.
 
 ## Status Indicators
 
@@ -82,27 +83,28 @@ class SmartschoolClient {
 
 ### Missing Implementations
 
-The following endpoints are defined in the API but not yet implemented in the client:
+The following endpoints are defined in the API but not yet implemented in the
+client:
 
 ```typescript
 class SmartschoolClient {
-
 }
 ```
 
 ### Extra Implementations
 
-The following methods are implemented in the client but not defined in the API endpoints:
+The following methods are implemented in the client but not defined in the API
+endpoints:
 
 ```typescript
 class SmartschoolClient {
-
 }
 ```
 
 ## Coverage Statistics
 
 Current status:
+
 - Total number of API endpoints: 61
 - Implemented endpoints: 61
 - Coverage percentage: 100.0%
@@ -128,4 +130,5 @@ console.log(checker.getAllMethodsStatus());
 This report is automatically generated using the APIChecker utility class.
 
 ---
+
 Last updated: 1/15/2025

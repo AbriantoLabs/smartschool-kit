@@ -1,12 +1,14 @@
 # Contributing to Smartschool API Client
 
-First off, thank you for considering contributing to the Smartschool API Client! It's people like you that make this tool better for everyone.
+First off, thank you for considering contributing to the Smartschool API Client!
+It's people like you that make this tool better for everyone.
 
 ## Development Process
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes following our [commit message conventions](#commit-message-format)
+3. Commit your changes following our
+   [commit message conventions](#commit-message-format)
 4. Push to your branch
 5. Open a Pull Request
 
@@ -48,6 +50,7 @@ smartschool-client/
 - Add comments for complex logic
 
 Example:
+
 ```typescript
 /**
  * Creates a new user in Smartschool
@@ -86,6 +89,7 @@ type(scope): description
 ```
 
 Types:
+
 - feat: New feature
 - fix: Bug fix
 - docs: Documentation changes
@@ -96,6 +100,7 @@ Types:
 - chore: Updating build tasks, package manager configs, etc
 
 Example:
+
 ```
 feat(user): add support for co-accounts
 
@@ -118,6 +123,7 @@ Closes #123
 ### Bug Reports
 
 Include:
+
 - Smartschool API Client version
 - Environment details (Deno/Node version, OS)
 - Steps to reproduce
@@ -125,26 +131,30 @@ Include:
 - Code examples
 
 Example:
+
 ```markdown
 ### Bug Report
 
-Version: 1.0.0
-Environment: Deno 1.37.0, macOS
+Version: 1.0.0 Environment: Deno 1.37.0, macOS
 
 #### Steps to Reproduce
+
 1. Create client instance
 2. Call saveUser with following data...
 
 #### Expected Behavior
+
 User is created
 
 #### Actual Behavior
+
 Receiving error...
 ```
 
 ### Feature Requests
 
 Include:
+
 - Clear use case
 - Expected behavior
 - Example implementation if possible
@@ -171,7 +181,10 @@ For maintainers with publishing rights:
 
 ### Working Together
 
-We aim to maintain a peaceful and constructive environment. If any issues arise, we'll work together to resolve them through open dialogue and mutual understanding. The focus is on learning and growing as a community while maintaining respectful interactions.
+We aim to maintain a peaceful and constructive environment. If any issues arise,
+we'll work together to resolve them through open dialogue and mutual
+understanding. The focus is on learning and growing as a community while
+maintaining respectful interactions.
 
 ## Getting Help
 
@@ -181,4 +194,5 @@ We aim to maintain a peaceful and constructive environment. If any issues arise,
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's MIT License.
+By contributing, you agree that your contributions will be licensed under the
+project's MIT License.

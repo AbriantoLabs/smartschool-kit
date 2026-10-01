@@ -5,15 +5,19 @@
  */
 
 /**
- * Base interface requiring an access code for API authentication
+ * Base interface carrying an access code for API authentication
  * @interface AccessCodeBase
  */
 export interface AccessCodeBase {
   /**
-   * Access code for authenticating with the Smartschool API
-   * This code must be obtained from your Smartschool administrator
+   * Access code for authenticating with the Smartschool API.
+   * This code must be obtained from your Smartschool administrator.
+   *
+   * Optional on individual API requests: the client automatically injects the
+   * access code configured on the `SmartschoolClient`. Set it on a request
+   * only to override the configured value for that single call.
    */
-  accesscode: string;
+  accesscode?: string;
 }
 
 /**
@@ -23,10 +27,40 @@ export interface AccessCodeBase {
  */
 export interface SmartschoolConfig extends AccessCodeBase {
   /**
+   * Access code for authenticating with the Smartschool API (required).
+   * This code must be obtained from your Smartschool administrator.
+   */
+  accesscode: string;
+
+  /**
    * Base URL endpoint for the Smartschool API
    * @example "https://schoolname.smartschool.be/api"
    */
   apiEndpoint: string;
+
+  /**
+   * Maximum time in milliseconds to wait for each HTTP attempt before
+   * aborting it. Set to 0 to disable timeouts entirely.
+   * @default 30000
+   */
+  timeoutMs?: number;
+
+  /**
+   * How many times a failed request is retried. Only network errors,
+   * timeouts and HTTP 429/502/503/504 responses are retried: plain 4xx
+   * errors, HTTP 500 and Smartschool API error codes are never retried,
+   * because most API calls are not idempotent (e.g. sending a message
+   * twice).
+   * @default 0
+   */
+  maxRetries?: number;
+
+  /**
+   * Base delay in milliseconds for the exponential backoff between
+   * retries. The delay before retry N is `retryDelayMs * 2^(N-1)`.
+   * @default 300
+   */
+  retryDelayMs?: number;
 }
 
 /**
@@ -147,9 +181,7 @@ export interface AddCourse extends AccessCodeBase, CourseBase {
  * @extends {GroupIdsBase}
  */
 export interface AddCourseStudents
-  extends AccessCodeBase,
-    CourseBase,
-    GroupIdsBase {}
+  extends AccessCodeBase, CourseBase, GroupIdsBase {}
 
 /**
  * Request interface for adding a teacher to a course
@@ -159,9 +191,7 @@ export interface AddCourseStudents
  * @extends {UserIdentifierBase}
  */
 export interface AddCourseTeacher
-  extends AccessCodeBase,
-    CourseBase,
-    UserIdentifierBase {
+  extends AccessCodeBase, CourseBase, UserIdentifierBase {
   /** Internal number identifier of the teacher */
   internnummer: string;
 }
@@ -217,9 +247,7 @@ export interface ChangeInternNumber extends AccessCodeBase {
  * @extends {AccountTypeBase}
  */
 export interface ChangePasswordAtNextLogin
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    AccountTypeBase {}
+  extends AccessCodeBase, UserIdentifierBase, AccountTypeBase {}
 
 /**
  * Request interface for changing a user's username
@@ -274,17 +302,13 @@ export interface DelClass extends AccessCodeBase, ClassBase {}
  * @extends {DateOptional}
  */
 export interface DelUser
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    DateOptional {}
+  extends AccessCodeBase, UserIdentifierBase, DateOptional {}
 
 /**
  * Request interface for deleting a user from the system
  */
 export interface DelUser
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    DateOptional {}
+  extends AccessCodeBase, UserIdentifierBase, DateOptional {}
 
 /**
  * Request interface for retrieving absence records for a specific user in a school year
@@ -341,14 +365,34 @@ export interface SaveClass extends AccessCodeBase {
  * Request interface for setting a new password for a user account
  */
 export interface SavePassword
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    AccountTypeBase {
+  extends AccessCodeBase, UserIdentifierBase, AccountTypeBase {
   /** The new password to set for the user */
   password: string;
   /** Whether the user must change password at next login (1) or not (0), although this is present Smartschool doesn't allow this */
   changePasswordAtNextLogin: number;
 }
+
+/**
+ * Valid Smartschool base roles (`basisrol`) for `saveUser` / `createUser`.
+ * Values are the strings the API accepts.
+ */
+export const SmartschoolRole: Readonly<{
+  TEACHER: "leerkracht";
+  STUDENT: "leerling";
+  MANAGEMENT: "directie";
+  OTHER: "andere";
+}> = Object.freeze(
+  {
+    TEACHER: "leerkracht",
+    STUDENT: "leerling",
+    MANAGEMENT: "directie",
+    OTHER: "andere",
+  } as const,
+);
+
+/** Union of the valid `basisrol` strings: see {@link SmartschoolRole}. */
+export type SmartschoolRole =
+  (typeof SmartschoolRole)[keyof typeof SmartschoolRole];
 
 /**
  * Request interface for creating or updating a user account in the system
@@ -373,7 +417,7 @@ export interface SaveUser extends AccessCodeBase {
    * - 13: 'andere'
    * - 30: 'directie'
    */
-  basisrol: string;
+  basisrol: SmartschoolRole;
   /** Primary password (required for new users) */
   passwd1?: string;
   /** Internal number identifier */
@@ -419,6 +463,11 @@ export interface SaveUser extends AccessCodeBase {
   passwd2?: string;
   /** Tertiary password */
   passwd3?: string;
+  /**
+   * Roster code ("roostercode"), returned as `koppelingsveldschoolagenda`
+   * in user details — e.g. a teacher abbreviation such as "COPM"
+   */
+  untis?: string;
   /** Additional dynamic fields */
   [key: string]: unknown;
 }
@@ -566,8 +615,7 @@ export interface GetUserDetailsByScannableCode extends AccessCodeBase {
  * Request interface for retrieving a user's official class assignment on a specific date
  */
 export interface GetUserOfficialClass
-  extends AccessCodeBase,
-    UserIdentifierBase {
+  extends AccessCodeBase, UserIdentifierBase {
   /** The date to get the official class for, format: YYYY-MM-DD */
   date: string;
 }
@@ -592,17 +640,13 @@ export interface GetSchoolyearDataOfClass extends AccessCodeBase {
  * Request interface for disabling two-factor authentication on a user account
  */
 export interface DeactivateTwoFactorAuthentication
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    AccountTypeBase {}
+  extends AccessCodeBase, UserIdentifierBase, AccountTypeBase {}
 
 /**
  * Request interface for forcing a password reset on next login for a user account
  */
 export interface ForcePasswordReset
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    AccountTypeBase {}
+  extends AccessCodeBase, UserIdentifierBase, AccountTypeBase {}
 
 /**
  * Request interface for retrieving absence records with their platform-defined aliases
@@ -680,16 +724,13 @@ export interface GetStudentCareer extends AccessCodeBase, UserIdentifierBase {}
  * Request interface for removing a co-account from a user's profile
  */
 export interface RemoveCoAccount
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    AccountTypeBase {}
+  extends AccessCodeBase, UserIdentifierBase, AccountTypeBase {}
 
 /**
  * Request interface for removing a user from a class or group
  */
 export interface RemoveUserFromGroup
-  extends AccessCodeBase,
-    UserIdentifierBase {
+  extends AccessCodeBase, UserIdentifierBase {
   /** The class/group code to remove the user from */
   class: string;
   /** Optional official date for the removal, format: YYYY-MM-DD */
@@ -796,9 +837,7 @@ export interface SaveSchoolyearDataOfClass extends AccessCodeBase {
  * @extends {AccountTypeBase} Base interface specifying which account to modify
  */
 export interface SaveSignature
-  extends AccessCodeBase,
-    UserIdentifierBase,
-    AccountTypeBase {
+  extends AccessCodeBase, UserIdentifierBase, AccountTypeBase {
   /**
    * The signature text or data to save
    * @example Example
@@ -989,8 +1028,7 @@ export interface SaveUserToClasses extends AccessCodeBase, UserIdentifierBase {
  * ```
  */
 export interface SaveUserToClassesAndGroups
-  extends AccessCodeBase,
-    UserIdentifierBase {
+  extends AccessCodeBase, UserIdentifierBase {
   /** CSV list of class and group codes to add the user to */
   csvList: string;
   /** Whether to keep old class/group memberships (1) or remove them (0) */
@@ -1831,8 +1869,8 @@ export interface GetAbsentsWithAliasByDateResponse {
  * ]
  * ```
  */
-export interface GetSchoolyearDataOfClassResponse
-  extends Array<{
+export interface GetSchoolyearDataOfClassResponse extends
+  Array<{
     /** Unique identifier for the school year record */
     id: number;
 
@@ -1881,8 +1919,8 @@ export interface GetSchoolyearDataOfClassResponse
  * ]
  * ```
  */
-export interface GetStudentCareerResponse
-  extends Array<{
+export interface GetStudentCareerResponse extends
+  Array<{
     /** Indicates if the student is currently enrolled in this class */
     inClass: boolean;
 
@@ -2032,8 +2070,8 @@ interface HelpdeskItem {
  * ]
  * ```
  */
-export interface GetClassListJsonResponse
-  extends Array<{
+export interface GetClassListJsonResponse extends
+  Array<{
     /** Unique identifier of the class/group */
     id: string;
 

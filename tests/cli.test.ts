@@ -1,35 +1,10 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert";
-import { parse } from "https://deno.land/std/flags/mod.ts";
+// tests/cli.test.ts
+import { assertEquals } from "jsr:@std/assert";
 
-// Mock stdin/stdout for testing interactive mode
-class MockStdin {
-  private responses: string[];
+import { parseArgs } from "../src/cli-args.ts";
 
-  constructor(responses: string[]) {
-    this.responses = [...responses];
-  }
-
-  read(_buf: Uint8Array): number | null {
-    if (this.responses.length === 0) return null;
-    const response = this.responses.shift()! + "\n";
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(response);
-    _buf.set(bytes);
-    return bytes.length;
-  }
-}
-
-class MockStdout {
-  output: string = "";
-
-  write(data: Uint8Array): number {
-    this.output += new TextDecoder().decode(data);
-    return data.length;
-  }
-}
-
-Deno.test("CLI - parses command line arguments", () => {
-  const args = parse([
+Deno.test("parseArgs - parses --key=value arguments", () => {
+  const args = parseArgs([
     "--method=saveUser",
     "--username=john.doe",
     "--firstName=John",
@@ -42,112 +17,66 @@ Deno.test("CLI - parses command line arguments", () => {
   assertEquals(args.lastName, "Doe");
 });
 
-Deno.test("CLI - handles interactive mode", () => {
-  const mockStdout = new MockStdout();
-  const mockStdin = new MockStdin([
+Deno.test("parseArgs - parses --key value pairs via look-ahead", () => {
+  const args = parseArgs([
+    "--method",
     "saveUser",
-    "john.doe",
-    "John",
-    "Doe",
-    "leerkracht",
+    "--config",
+    "./config.json",
   ]);
 
-  // Replace stdin/stdout
-  const originalStdin = Deno.stdin;
-  const originalStdout = Deno.stdout;
-  (Deno as any).stdin = mockStdin;
-  (Deno as any).stdout = mockStdout;
-
-  try {
-    // Run CLI in interactive mode
-    parse(["--interactive"]);
-    // Simulate user input
-    const mockStdout = new MockStdout();
-    const mockStdin = new MockStdin(["saveUser", "john.doe", "John", "Doe"]);
-
-    // Replace stdin/stdout
-    const originalStdin = Deno.stdin;
-    const originalStdout = Deno.stdout;
-    (Deno as any).stdin = mockStdin;
-    (Deno as any).stdout = mockStdout;
-
-    try {
-      // Run CLI in interactive mode
-      const args = parse(["--interactive"]);
-      validateArgs(args);
-
-      // Verify output contains prompts
-      assertEquals(mockStdout.output.includes("Enter method:"), true);
-      assertEquals(mockStdout.output.includes("Enter username:"), true);
-      assertEquals(mockStdout.output.includes("Enter first name:"), true);
-      assertEquals(mockStdout.output.includes("Enter last name:"), true);
-
-      // Verify parsed arguments
-      assertEquals(args.method, "saveUser");
-      assertEquals(args.username, "john.doe");
-      assertEquals(args.firstName, "John");
-      assertEquals(args.lastName, "Doe");
-    } finally {
-      // Restore original stdin/stdout
-      (Deno as any).stdin = originalStdin;
-      (Deno as any).stdout = originalStdout;
-    }
-
-    // Verify output contains prompts
-    assertEquals(mockStdout.output.includes("Enter method:"), true);
-    assertEquals(mockStdout.output.includes("Enter username"), true);
-  } finally {
-    // Restore original stdin/stdout
-    (Deno as any).stdin = originalStdin;
-    (Deno as any).stdout = originalStdout;
-  }
+  assertEquals(args.method, "saveUser");
+  assertEquals(args.config, "./config.json");
 });
 
-function validateArgs(args: { [key: string]: any }) {
-  const requiredParams = ["method", "username", "firstName", "lastName"];
-  for (const param of requiredParams) {
-    if (!args[param]) {
-      throw new Error(`Missing required parameter: ${param}`);
-    }
-  }
-}
+Deno.test("parseArgs - recognizes boolean flags", () => {
+  const args = parseArgs(["--help", "--interactive", "--skip"]);
 
-Deno.test("CLI - validates required parameters", () => {
-  const args = parse(["--method=saveUser"]);
-
-  // Should throw error for missing required parameters
-  assertThrows(
-    () => {
-      validateArgs(args);
-    },
-    Error,
-    "Missing required parameter: username",
-  );
+  assertEquals(args.help, true);
+  assertEquals(args.interactive, true);
+  assertEquals(args.skip, true);
 });
 
-Deno.test("CLI - handles config file", async () => {
-  // Create temporary config file
-  const config = {
-    apiEndpoint: "https://test.smartschool.be/Webservices/V3",
-    accessCode: "test123",
-  };
+Deno.test("parseArgs - recognizes short flags -h and -i", () => {
+  const args = parseArgs(["-h"]);
+  assertEquals(args.help, true);
 
-  await Deno.writeTextFile("./test-config.json", JSON.stringify(config));
+  const argsI = parseArgs(["-i"]);
+  assertEquals(argsI.interactive, true);
+});
 
-  try {
-    const args = parse([
-      "--method=saveUser",
-      "--config=./test-config.json",
-      "--username=john.doe",
-    ]);
+Deno.test("parseArgs - flag followed by another flag resolves to true", () => {
+  const args = parseArgs(["--skip", "--method=saveUser"]);
 
-    // Test config loading
-    const loadedConfig = JSON.parse(await Deno.readTextFile(args.config));
+  assertEquals(args.skip, true);
+  assertEquals(args.method, "saveUser");
+});
 
-    assertEquals(loadedConfig.apiEndpoint, config.apiEndpoint);
-    assertEquals(loadedConfig.accessCode, config.accessCode);
-  } finally {
-    // Cleanup
-    await Deno.remove("./test-config.json");
-  }
+Deno.test("parseArgs - unknown flags without a value resolve to true", () => {
+  const args = parseArgs(["--verbose", "--method=saveUser"]);
+
+  assertEquals(args.verbose, true);
+});
+
+Deno.test("parseArgs - positional arguments land in _", () => {
+  const args = parseArgs(["--method=x", "extra", "more"]);
+
+  assertEquals(args._, ["extra", "more"]);
+  assertEquals(args.method, "x");
+});
+
+Deno.test("parseArgs - empty input yields safe defaults", () => {
+  const args = parseArgs([]);
+
+  assertEquals(args._, []);
+  assertEquals(args.interactive, false);
+  assertEquals(args.method, undefined);
+  assertEquals(args.help, undefined);
+});
+
+Deno.test("parseArgs - values containing dashes are preserved", () => {
+  const args = parseArgs(["--userIdentifier=jane-ro-1", "--date=2024-01-15"]);
+
+  assertEquals(args.userIdentifier, "jane-ro-1");
+  assertEquals(args.date, "2024-01-15");
 });
