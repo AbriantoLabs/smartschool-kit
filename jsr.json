@@ -1,6 +1,6 @@
 {
   "name": "@abrianto/smartschool-kit",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "license": "MIT",
   "exports": {
     ".": "./src/mod.ts",

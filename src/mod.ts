@@ -489,8 +489,6 @@ export class SmartschoolClient {
       ...params,
     });
 
-    console.log(xmlBody);
-
     const response = await fetch(this.config.apiEndpoint, {
       method: "POST",
       headers: {
@@ -500,6 +498,24 @@ export class SmartschoolClient {
     });
 
     const responseText = await response.text();
+
+    // A SOAP fault has no <return>: surface Smartschool's own message instead
+    // of handing the parsed fault back as if the call succeeded.
+    const fault = responseText.match(
+      /<(?:[\w-]+:)?Fault\b[\s\S]*?<faultstring[^>]*>([\s\S]*?)<\/faultstring>/i,
+    );
+    if (fault) {
+      throw new SmartschoolError(
+        this.decodeHtmlEntities(fault[1].trim()),
+        "SOAP_FAULT",
+      );
+    }
+    if (!response.ok) {
+      throw new SmartschoolError(
+        `HTTP ${response.status} ${response.statusText}`.trim(),
+        `HTTP_${response.status}`,
+      );
+    }
 
     const json = parseXMLResponse(responseText);
 
